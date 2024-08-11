@@ -1,0 +1,13 @@
+allprojects {
+    repositories {
+        def REPOSITORY_URL = 'http://localhost:8081/repository/maven-public/'
+        // 配置自定义仓库
+        maven {
+            url REPOSITORY_URL
+            credentials {
+                username="admin"
+                password="admin123"
+            }
+        }
+    }
+}

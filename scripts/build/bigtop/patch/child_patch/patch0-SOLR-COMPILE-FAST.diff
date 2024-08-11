@@ -1,0 +1,36 @@
+diff --git a/lucene/default-nested-ivy-settings.xml b/lucene/default-nested-ivy-settings.xml
+index 60bc138..9d2b0d7 100644
+--- a/lucene/default-nested-ivy-settings.xml
++++ b/lucene/default-nested-ivy-settings.xml
+@@ -30,10 +30,13 @@
+   <include url="${ivy.default.settings.dir}/ivysettings-main-chain.xml"/>
+
+   <caches lockStrategy="${ivy.lock-strategy}" resolutionCacheDir="${ivy.resolution-cache.dir}" />
+-
++  <credentials host="${repo.maven.org}" username="${repo.user}" passwd="${repo.pass}" />
++  <property name="repo.maven.org" value="${repo.maven.org}"
++            override="true"/>
+   <resolvers>
+-    <ibiblio name="sonatype-releases" root="https://oss.sonatype.org/content/repositories/releases" m2compatible="true" />
+-    <ibiblio name="releases.cloudera.com" root="https://repository.cloudera.com/artifactory/libs-release-local" m2compatible="true" />
++    <ibiblio name="nexus" root="${repo.maven.org}" m2compatible="true" />
++<!--    <ibiblio name="sonatype-releases" root="https://oss.sonatype.org/content/repositories/releases" m2compatible="true" />-->
++<!--    <ibiblio name="releases.cloudera.com" root="https://repository.cloudera.com/artifactory/libs-release-local" m2compatible="true" />-->
+
+     <filesystem name="local-maven-2" m2compatible="true" local="true">
+       <artifact
+@@ -44,10 +47,11 @@
+
+     <chain name="default" returnFirst="true" checkmodified="true" changingPattern=".*SNAPSHOT">
+       <resolver ref="local"/>
++      <resolver ref="nexus"/>
+       <!-- <resolver ref="local-maven-2" /> -->
+-      <resolver ref="main"/>
+-      <resolver ref="sonatype-releases" />
+-      <resolver ref="releases.cloudera.com"/>
++<!--      <resolver ref="main"/>-->
++<!--      <resolver ref="sonatype-releases" />-->
++<!--      <resolver ref="releases.cloudera.com"/>-->
+     </chain>
+   </resolvers>
+

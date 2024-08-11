@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  nexus:
+    image: sonatype/nexus3:3.69.0-java8
+    container_name: nexus
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./scripts:/scripts
+      - ./common/data/nexus-data:/nexus-data
+    environment:
+      - NEXUS_SECURITY_RANDOMPASSWORD=false
+      - NEXUS_ADMIN_PASSWORD=admin123
+    restart: always
+    entrypoint: /scripts/system/before/nexus/add_proxy.sh
+    healthcheck:
+      test: [ "CMD-SHELL", "test -f /scripts/system/before/nexus/.lock" ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    networks:
+      ambari-env-network:
+        ipv4_address: 172.20.0.2
+
+  centos1:
+    image: centos:7.9.2009
+    container_name: centos1
+    hostname: centos1
+    ports:
+      - "85:80"
+      - "22223:22"
+      - "28080:8080"
+    tty: true
+    privileged: true
+    volumes:
+      - ./scripts:/scripts
+      - ./common/etc/yum.repos.d:/etc/yum.repos.d
+      - ./common/conf:/opt/modules/conf
+      - ./common/data/mvn:/root/.m2
+      - ./common/data/rpm-package:/data/rpm-package
+    entrypoint: /scripts/master.sh
+    depends_on:
+      nexus:
+        condition: service_healthy
+    networks:
+      ambari-env-network:
+        ipv4_address: 172.20.0.3
+
+  centos2:
+    image: centos:7.9.2009
+    container_name: centos2
+    hostname: centos2
+    ports:
+      - "22224:22"
+    tty: true
+    privileged: true
+    volumes:
+      - ./scripts:/scripts
+      - ./common/etc/yum.repos.d:/etc/yum.repos.d
+      - ./common/conf:/opt/modules/conf
+      - ./common/data/mvn:/root/.m2
+    entrypoint: /scripts/slave.sh
+    depends_on:
+      nexus:
+        condition: service_healthy
+    networks:
+      ambari-env-network:
+        ipv4_address: 172.20.0.4
+
+  centos3:
+    image: centos:7.9.2009
+    container_name: centos3
+    hostname: centos3
+    ports:
+      - "22225:22"
+    tty: true
+    privileged: true
+    volumes:
+      - ./scripts:/scripts
+      - ./common/etc/yum.repos.d:/etc/yum.repos.d
+      - ./common/conf:/opt/modules/conf
+      - ./common/data/mvn:/root/.m2
+    entrypoint: /scripts/slave.sh
+    depends_on:
+      nexus:
+        condition: service_healthy
+    networks:
+      ambari-env-network:
+        ipv4_address: 172.20.0.5
+
+networks:
+  ambari-env-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

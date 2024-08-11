@@ -1,0 +1,111 @@
+diff --git a/tez-ui/pom.xml b/tez-ui/pom.xml
+index 8161be7..b69f5f3 100644
+--- a/tez-ui/pom.xml
++++ b/tez-ui/pom.xml
+@@ -34,7 +34,7 @@
+
+     <packageManagerScript>node/yarn/dist/bin/yarn.js</packageManagerScript>
+
+-    <allow-root-build>--allow-root=false</allow-root-build>
++    <allow-root-build>--allow-root=true</allow-root-build>
+
+     <skipTests>false</skipTests>
+   </properties>
+@@ -375,6 +375,10 @@
+             <configuration>
+               <nodeVersion>${nodeVersion}</nodeVersion>
+               <yarnVersion>v0.21.3</yarnVersion>
++              <nodeDownloadRoot>https://cdn.npmmirror.com/binaries/node/</nodeDownloadRoot>
++              <yarnDownloadRoot>
++                https://mirror.ghproxy.com/https://github.com/yarnpkg/yarn/releases/download/
++              </yarnDownloadRoot>
+             </configuration>
+           </execution>
+           <execution>
+@@ -384,14 +388,15 @@
+               <goal>yarn</goal>
+             </goals>
+             <configuration>
+-              <arguments>install</arguments>
++              <arguments>install --verbose</arguments>
++              <npmRegistryURL>https://registry.npmmirror.com/</npmRegistryURL>
+             </configuration>
+           </execution>
+           <execution>
+             <phase>generate-resources</phase>
+             <id>bower install</id>
+             <configuration>
+-              <arguments>install ${allow-root-build}</arguments>
++              <arguments>install ${allow-root-build} --verbose </arguments>
+             </configuration>
+             <goals>
+               <goal>bower</goal>
+diff --git a/tez-ui/src/main/webapp/.bowerrc b/tez-ui/src/main/webapp/.bowerrc
+index 5b0b07d..780b2d4 100644
+--- a/tez-ui/src/main/webapp/.bowerrc
++++ b/tez-ui/src/main/webapp/.bowerrc
+@@ -3,5 +3,7 @@
+   "analytics": false,
+   "resolvers": [
+     "bower-shrinkwrap-resolver-ext"
+-  ]
++  ],
++  "registry": "https://registry.bower.io/",
++  "strict-ssl": false
+ }
+diff --git a/tez-ui/src/main/webapp/bower.json b/tez-ui/src/main/webapp/bower.json
+index f12ee06..4d1c429 100644
+--- a/tez-ui/src/main/webapp/bower.json
++++ b/tez-ui/src/main/webapp/bower.json
+@@ -1,27 +1,29 @@
+ {
+   "name": "tez-ui",
+   "dependencies": {
+-    "ember": "2.2.0",
+-    "ember-cli-shims": "0.0.6",
+-    "ember-cli-test-loader": "0.2.1",
+-    "ember-data": "2.1.0",
+-    "ember-load-initializers": "0.1.7",
+-    "ember-qunit": "0.4.16",
+-    "ember-qunit-notifications": "0.1.0",
+-    "loader.js": "3.3.0",
+-    "qunit": "1.19.0",
+-    "more-js": "0.8.8",
+-    "bootstrap": "3.3.6",
+-    "font-awesome": "4.5.0",
+-    "jquery": "2.1.4",
+-    "jquery-ui": "1.11.4",
+-    "moment": "2.12.0",
+-    "moment-timezone": "0.5.0",
+-    "numeral": "1.5.3",
+-    "snippet-ss": "1.11.0",
+-    "jquery-mousewheel": "3.1.13",
+-    "codemirror": "5.11.0",
+-    "zip-js": "1.0.0",
+-    "file-saver": "v1.2.0"
++    "alasql": "https://mirror.ghproxy.com/https://github.com/agershun/alasql.git#^0.4.0",
++    "ember": "https://mirror.ghproxy.com/https://github.com/components/ember.git#2.2.0",
++    "ember-cli-shims": "https://mirror.ghproxy.com/https://github.com/ember-cli/ember-cli-shims.git#0.0.6",
++    "ember-cli-test-loader": "https://mirror.ghproxy.com/https://github.com/ember-cli/ember-cli-test-loader.git#0.2.1",
++    "ember-data": "https://mirror.ghproxy.com/https://github.com/components/ember-data.git#2.1.0",
++    "ember-load-initializers": "https://mirror.ghproxy.com/https://github.com/ember-cli/ember-load-initializers.git#0.1.7",
++    "ember-qunit": "https://mirror.ghproxy.com/https://github.com/rwjblue/ember-qunit-builds.git#0.4.16",
++    "ember-qunit-notifications": "https://mirror.ghproxy.com/https://github.com/dockyard/ember-qunit-notifications.git#0.1.0",
++    "loader.js": "https://mirror.ghproxy.com/https://github.com/stefanpenner/loader.js.git#3.3.0",
++    "qunit": "https://mirror.ghproxy.com/https://github.com/jquery/qunit.git#1.19.0",
++    "more-js": "https://mirror.ghproxy.com/https://github.com/sreenaths/more-js.git#0.8.8",
++    "bootstrap": "https://mirror.ghproxy.com/https://github.com/twbs/bootstrap.git#3.3.6",
++    "font-awesome": "https://mirror.ghproxy.com/https://github.com/FortAwesome/Font-Awesome.git#4.5.0",
++    "jquery": "https://mirror.ghproxy.com/https://github.com/jquery/jquery-dist.git#2.1.4",
++    "jquery-ui": "https://mirror.ghproxy.com/https://github.com/components/jqueryui.git#1.11.4",
++    "moment": "https://mirror.ghproxy.com/https://github.com/moment/moment.git#2.12.0",
++    "moment-timezone": "https://mirror.ghproxy.com/https://github.com/moment/moment-timezone.git#0.5.0",
++    "numeral": "https://mirror.ghproxy.com/https://github.com/adamwdraper/Numeral-js.git#1.5.3",
++    "qunit-notifications": "https://mirror.ghproxy.com/https://github.com/dockyard/qunit-notifications.git#0.1.1",
++    "snippet-ss": "https://mirror.ghproxy.com/https://github.com/sreenaths/snippet-ss.git#1.11.0",
++    "jquery-mousewheel": "https://mirror.ghproxy.com/https://github.com/jquery/jquery-mousewheel.git#3.1.13",
++    "codemirror": "https://mirror.ghproxy.com/https://github.com/components/codemirror.git#5.11.0",
++    "zip-js": "https://mirror.ghproxy.com/https://github.com/sreenaths/zip.js.git#1.0.0",
++    "file-saver": "https://mirror.ghproxy.com/https://github.com/eligrey/FileSaver.js.git#v1.2.0"
+   }
+ }

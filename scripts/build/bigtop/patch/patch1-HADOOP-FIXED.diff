@@ -1,0 +1,25 @@
+diff --git a/bigtop-packages/src/common/hadoop/do-component-build b/bigtop-packages/src/common/hadoop/do-component-build
+index 60ff0de9..c3b47910 100644
+--- a/bigtop-packages/src/common/hadoop/do-component-build
++++ b/bigtop-packages/src/common/hadoop/do-component-build
+@@ -131,9 +131,18 @@ MAVEN_OPTS+="-DskipTests -DskipITs "
+ # Include common Maven Deployment logic
+ . $(dirname ${0})/maven_deploy.sh
+
++# bower_components copy here
++tar -zxvf ../../SOURCES/yarn-ui-bower.tar.gz -C ./hadoop-yarn-project/hadoop-yarn/hadoop-yarn-ui/src/main/webapp
++
++
+ # Build artifacts
+-mvn $BUNDLE_SNAPPY -Pdist -Pnative -Psrc -Pyarn-ui -Dtar ${MAVEN_OPTS} install ${EXTRA_GOALS} "$@"
+-mvn site site:stage ${MAVEN_OPTS} $@
++mvn -X $BUNDLE_SNAPPY -Pdist -Pnative -Psrc -Pyarn-ui -Dtar ${MAVEN_OPTS} install ${EXTRA_GOALS} "$@"
++
++source /opt/modules/virtual_env/hadoop_py37/bin/activate
++python --version
++mvn -X site site:stage ${MAVEN_OPTS} "$@"
++deactivate
++python --version
+
+ (cd build ; tar --strip-components=1 -xzvf  ../hadoop-dist/target/hadoop-${HADOOP_VERSION}.tar.gz)
+ (cd build/src ; tar --strip-components=1 -xzvf  ../../hadoop-dist/target/hadoop-${HADOOP_VERSION}-src.tar.gz)

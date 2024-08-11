@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile
+index d6b7bdf..2bd0698 100644
+--- a/Makefile
++++ b/Makefile
+@@ -32,7 +32,7 @@ update-version:
+ 	$(MAVEN_BINARY) versions:set-property -Dproperty=revision -DnewVersion=$(new-version) -DgenerateBackupPoms=false -Djdk.version=$(INFRA_JAVA_VERSION)
+ 
+ rpm:
+-	$(MAVEN_BINARY) clean package -Dbuild-rpm -DskipTests -Djdk.version=$(INFRA_JAVA_VERSION)
++	$(MAVEN_BINARY) clean package -Dbuild-rpm -DskipTests -Djdk.version=$(INFRA_JAVA_VERSION) -Drat.skip=true -X
+ 
+ deb:
+ 	$(MAVEN_BINARY) clean package -Dbuild-deb -DskipTests -Djdk.version=$(INFRA_JAVA_VERSION)

@@ -1,0 +1,166 @@
+diff --git a/flink/flink-scala-2.11/flink-scala-parent/pom.xml b/flink/flink-scala-2.11/flink-scala-parent/pom.xml
+index 67ad8db..445fbc8 100644
+--- a/flink/flink-scala-2.11/flink-scala-parent/pom.xml
++++ b/flink/flink-scala-2.11/flink-scala-parent/pom.xml
+@@ -41,8 +41,7 @@
+     <hive.version>2.3.4</hive.version>
+     <hiverunner.version>4.0.0</hiverunner.version>
+     <grpc.version>1.15.0</grpc.version>
+-
+-    <flink.bin.download.url>https://archive.apache.org/dist/flink/flink-${flink.version}/flink-${flink.version}-bin-scala_${flink.scala.binary.version}.tgz</flink.bin.download.url>
++    <flink.bin.download.url>https://mirrors.huaweicloud.com/apache/flink/flink-${flink.version}/flink-${flink.version}-bin-scala_${flink.scala.binary.version}.tgz</flink.bin.download.url>
+   </properties>
+ 
+   
+diff --git a/flink/flink-scala-2.12/flink-scala-parent/pom.xml b/flink/flink-scala-2.12/flink-scala-parent/pom.xml
+index 67ad8db..445fbc8 100644
+--- a/flink/flink-scala-2.12/flink-scala-parent/pom.xml
++++ b/flink/flink-scala-2.12/flink-scala-parent/pom.xml
+@@ -41,8 +41,7 @@
+     <hive.version>2.3.4</hive.version>
+     <hiverunner.version>4.0.0</hiverunner.version>
+     <grpc.version>1.15.0</grpc.version>
+-
+-    <flink.bin.download.url>https://archive.apache.org/dist/flink/flink-${flink.version}/flink-${flink.version}-bin-scala_${flink.scala.binary.version}.tgz</flink.bin.download.url>
++    <flink.bin.download.url>https://mirrors.huaweicloud.com/apache/flink/flink-${flink.version}/flink-${flink.version}-bin-scala_${flink.scala.binary.version}.tgz</flink.bin.download.url>
+   </properties>
+ 
+   
+diff --git a/flink/flink-scala-parent/pom.xml b/flink/flink-scala-parent/pom.xml
+index 67ad8db..831a93c 100644
+--- a/flink/flink-scala-parent/pom.xml
++++ b/flink/flink-scala-parent/pom.xml
+@@ -42,7 +42,7 @@
+     <hiverunner.version>4.0.0</hiverunner.version>
+     <grpc.version>1.15.0</grpc.version>
+ 
+-    <flink.bin.download.url>https://archive.apache.org/dist/flink/flink-${flink.version}/flink-${flink.version}-bin-scala_${flink.scala.binary.version}.tgz</flink.bin.download.url>
++    <flink.bin.download.url>https://mirrors.huaweicloud.com/apache/flink/flink-${flink.version}/flink-${flink.version}-bin-scala_${flink.scala.binary.version}.tgz</flink.bin.download.url>
+   </properties>
+ 
+   
+diff --git a/rlang/pom.xml b/rlang/pom.xml
+index 9174a90..8bdb689 100644
+--- a/rlang/pom.xml
++++ b/rlang/pom.xml
+@@ -38,10 +38,10 @@
+ 
+         <spark.archive>spark-${spark.version}</spark.archive>
+         <spark.src.download.url>
+-            https://archive.apache.org/dist/spark/${spark.archive}/${spark.archive}.tgz
++            https://mirrors.huaweicloud.com/apache/spark/${spark.archive}/${spark.archive}.tgz
+         </spark.src.download.url>
+         <spark.bin.download.url>
+-            https://archive.apache.org/dist/spark/${spark.archive}/${spark.archive}-bin-without-hadoop.tgz
++            https://mirrors.huaweicloud.com/apache/spark/${spark.archive}/${spark.archive}-bin-without-hadoop.tgz
+         </spark.bin.download.url>
+         <interpreter.jar.name>zeppelin-interpreter-r</interpreter.jar.name>
+     </properties>
+diff --git a/scripts/docker/spark-cluster-managers/spark_yarn_cluster/Dockerfile b/scripts/docker/spark-cluster-managers/spark_yarn_cluster/Dockerfile
+index da3df1c..e3def37 100644
+--- a/scripts/docker/spark-cluster-managers/spark_yarn_cluster/Dockerfile
++++ b/scripts/docker/spark-cluster-managers/spark_yarn_cluster/Dockerfile
+@@ -42,7 +42,7 @@ ENV PATH $PATH:$JAVA_HOME/bin
+ RUN yum install -y curl which tar sudo openssh-server openssh-clients rsync
+ 
+ # hadoop
+-RUN curl -s https://archive.apache.org/dist/hadoop/core/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz | tar -xz -C /usr/local/
++RUN curl -s https://mirrors.huaweicloud.com/apache/hadoop/core/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz | tar -xz -C /usr/local/
+ RUN cd /usr/local && ln -s ./hadoop-$HADOOP_VERSION hadoop
+ 
+ ENV HADOOP_PREFIX /usr/local/hadoop
+diff --git a/scripts/docker/zeppelin/bin/Dockerfile b/scripts/docker/zeppelin/bin/Dockerfile
+index 66d794e..d280f79 100644
+--- a/scripts/docker/zeppelin/bin/Dockerfile
++++ b/scripts/docker/zeppelin/bin/Dockerfile
+@@ -64,7 +64,7 @@ ENV PATH /opt/conda/envs/python_3_with_R/bin:/opt/conda/bin:$PATH
+ 
+ RUN echo "$LOG_TAG Download Zeppelin binary" && \
+     mkdir -p ${ZEPPELIN_HOME} && \
+-    wget -nv -O /tmp/zeppelin-${Z_VERSION}-bin-all.tgz https://archive.apache.org/dist/zeppelin/zeppelin-${Z_VERSION}/zeppelin-${Z_VERSION}-bin-all.tgz && \
++    wget -nv -O /tmp/zeppelin-${Z_VERSION}-bin-all.tgz https://mirrors.huaweicloud.com/apache/zeppelin/zeppelin-${Z_VERSION}/zeppelin-${Z_VERSION}-bin-all.tgz && \
+     tar --strip-components=1 -zxvf  /tmp/zeppelin-${Z_VERSION}-bin-all.tgz -C ${ZEPPELIN_HOME} && \
+     rm -f /tmp/zeppelin-${Z_VERSION}-bin-all.tgz && \
+     chown -R root:root ${ZEPPELIN_HOME} && \
+diff --git a/spark/pom.xml b/spark/pom.xml
+index 70aa867..fb735f8 100644
+--- a/spark/pom.xml
++++ b/spark/pom.xml
+@@ -47,10 +47,10 @@
+ 
+         <spark.archive>spark-${spark.version}</spark.archive>
+         <spark.src.download.url>
+-            https://archive.apache.org/dist/spark/${spark.archive}/${spark.archive}.tgz
++            https://mirrors.huaweicloud.com/apache/spark/${spark.archive}/${spark.archive}.tgz
+         </spark.src.download.url>
+         <spark.bin.download.url>
+-            https://archive.apache.org/dist/spark/${spark.archive}/${spark.archive}-bin-without-hadoop.tgz
++            https://mirrors.huaweicloud.com/apache/spark/${spark.archive}/${spark.archive}-bin-without-hadoop.tgz
+         </spark.bin.download.url>
+     </properties>
+ 
+diff --git a/zeppelin-web/pom.xml b/zeppelin-web/pom.xml
+index 32d82f7..0f47837 100644
+--- a/zeppelin-web/pom.xml
++++ b/zeppelin-web/pom.xml
+@@ -37,8 +37,9 @@
+     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+ 
+     <!--plugin versions-->
+-    <plugin.frontend.nodeDownloadRoot>https://nodejs.org/dist/</plugin.frontend.nodeDownloadRoot>
+-    <plugin.frontend.npmDownloadRoot>https://registry.npmjs.org/npm/-/</plugin.frontend.npmDownloadRoot>
++    <plugin.frontend.nodeDownloadRoot>https://cdn.npmmirror.com/binaries/node/</plugin.frontend.nodeDownloadRoot>
++    <plugin.frontend.npmDownloadRoot>https://registry.npmmirror.com/npm/-/</plugin.frontend.npmDownloadRoot>
++    <web.args.mirror>${}</web.args.mirror>
+   </properties>
+ 
+   <build>
+@@ -81,6 +82,7 @@
+             <configuration>
+               <skip>${web.e2e.enabled}</skip>
+               <arguments>install --no-lockfile --unsafe-perm</arguments>
++              <npmRegistryURL>https://registry.npmmirror.com/</npmRegistryURL>
+             </configuration>
+           </execution>
+ 
+@@ -91,7 +93,7 @@
+             </goals>
+             <configuration>
+               <skip>${web.e2e.enabled}</skip>
+-              <arguments>${web.build.command}</arguments>
++              <arguments>${web.build.command} --registry=https://registry.npmmirror.com</arguments>
+             </configuration>
+           </execution>
+ 
+@@ -103,7 +105,7 @@
+             <phase>test</phase>
+             <configuration>
+               <skip>${web.e2e.disabled}</skip>
+-              <arguments>run karma-test</arguments>
++              <arguments>run karma-test --registry=https://registry.npmmirror.com</arguments>
+             </configuration>
+           </execution>
+ 
+@@ -115,7 +117,7 @@
+               <phase>integration-test</phase>
+               <configuration>
+                 <skip>${web.e2e.disabled}</skip>
+-                <arguments>run e2e</arguments>
++                <arguments>run e2e --registry=https://registry.npmmirror.com</arguments>
+               </configuration>
+             </execution>
+ 
+diff --git a/zeppelin-zengine/src/test/java/org/apache/zeppelin/interpreter/integration/DownloadUtils.java b/zeppelin-zengine/src/test/java/org/apache/zeppelin/interpreter/integration/DownloadUtils.java
+index bf07fcf..f89a906 100644
+--- a/zeppelin-zengine/src/test/java/org/apache/zeppelin/interpreter/integration/DownloadUtils.java
++++ b/zeppelin-zengine/src/test/java/org/apache/zeppelin/interpreter/integration/DownloadUtils.java
+@@ -113,7 +113,7 @@ public class DownloadUtils {
+       LOGGER.warn("Failed to download " + project + " from mirror site, fallback to use apache archive", e);
+       File downloadFile = new File(projectDownloadFolder + "/" + project + "-" + version + postFix);
+       String downloadURL =
+-              "https://archive.apache.org/dist/" + projectPath + "/" + project +"-"
++              "https://mirrors.huaweicloud.com/apache/" + projectPath + "/" + project +"-"
+                       + version
+                       + "/" + project + "-"
+                       + version
+

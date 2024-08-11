@@ -1,0 +1,23 @@
+diff --git a/pom.xml b/pom.xml
+index e6e8c0b..3dc10ec 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -44,14 +44,14 @@
+     <hbase.version>2.4.13</hbase.version>
+     <curator.version>4.2.0</curator.version>
+     <commons-lang3.version>3.12.0</commons-lang3.version>
+-    <hbase.tar>http://repo.bigtop.apache.org.s3.amazonaws.com/bigtop-stack-binary/3.2.0/centos-7/x86_64/hbase-2.4.13-bin.tar.gz</hbase.tar>
++    <hbase.tar>file:${project.basedir}/../ambari-download-tar/hbase-2.4.13-bin.tar.gz</hbase.tar>
+     <hbase.folder>hbase-2.4.13</hbase.folder>
+-    <hadoop.tar>http://repo.bigtop.apache.org.s3.amazonaws.com/bigtop-stack-binary/3.2.0/centos-7/x86_64/hadoop-3.3.4.tar.gz</hadoop.tar>
++    <hadoop.tar>file:${project.basedir}/../ambari-download-tar/hadoop-3.3.4.tar.gz</hadoop.tar>
+     <hadoop.folder>hadoop-3.3.4</hadoop.folder>
+     <hadoop.version>3.3.4</hadoop.version>
+     <grafana.folder>grafana-9.3.2</grafana.folder>
+-    <grafana.tar>https://dl.grafana.com/oss/release/grafana-9.3.2.linux-amd64.tar.gz</grafana.tar>
+-    <phoenix.tar>http://repo.bigtop.apache.org.s3.amazonaws.com/bigtop-stack-binary/3.2.0/centos-7/x86_64/phoenix-hbase-2.4-5.1.2-bin.tar.gz</phoenix.tar>
++    <grafana.tar>file:${project.basedir}/../ambari-download-tar/grafana-enterprise-9.3.2.linux-amd64.tar.gz</grafana.tar>
++    <phoenix.tar>file:${project.basedir}/../ambari-download-tar/phoenix-hbase-2.4-5.1.2-bin.tar.gz</phoenix.tar>
+     <phoenix.folder>phoenix-hbase-2.4-5.1.2-bin</phoenix.folder>
+     <resmonitor.install.dir>/usr/lib/python2.6/site-packages/resource_monitoring</resmonitor.install.dir>
+     <powermock.version>1.6.2</powermock.version>

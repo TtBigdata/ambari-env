@@ -1,0 +1,22 @@
+diff --git a/pom.xml b/pom.xml
+index 9b76e78..654d5b8 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -115,7 +115,7 @@
+     <execution.root>${user.dir}</execution.root>
+     <spark.home>${execution.root}/dev/spark</spark.home>
+     <spark.bin.download.url>
+-      https://archive.apache.org/dist/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz
++      https://mirrors.huaweicloud.com/apache/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz
+     </spark.bin.download.url>
+     <spark.bin.name>spark-2.4.5-bin-hadoop2.7</spark.bin.name>
+     <!--  used for testing, NCSARequestLog use it for access log  -->
+@@ -1071,7 +1071,7 @@
+         <json4s.spark-2.12.version>3.6.6</json4s.spark-2.12.version>
+         <json4s.version>${json4s.spark-2.11.version}</json4s.version>
+         <spark.bin.download.url>
+-          https://archive.apache.org/dist/spark/spark-3.1.2/spark-3.1.2-bin-hadoop3.2.tgz
++          https://mirrors.huaweicloud.com/apache/spark/spark-3.1.2/spark-3.1.2-bin-hadoop3.2.tgz
+         </spark.bin.download.url>
+         <spark.bin.name>spark-3.1.2-bin-hadoop3.2</spark.bin.name>
+       </properties>

@@ -1,0 +1,10 @@
+diff --git a/bigtop-packages/src/common/tez/do-component-build b/bigtop-packages/src/common/tez/do-component-build
+index e7216697..4c0c2235 100644
+--- a/bigtop-packages/src/common/tez/do-component-build
++++ b/bigtop-packages/src/common/tez/do-component-build
+@@ -33,4 +33,4 @@ BUILD_TEZ_OPTS="clean package \
+ -Phadoop28 \
+ -DskipTests"
+
+-mvn ${BUILD_TEZ_OPTS} "$@"
++mvn -X ${BUILD_TEZ_OPTS} "$@"

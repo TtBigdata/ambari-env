@@ -1,0 +1,84 @@
+diff --git a/build.gradle b/build.gradle
+index d36170c..e53b2d0 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -19,7 +19,13 @@ import java.nio.charset.StandardCharsets
+
+ buildscript {
+   repositories {
+-    mavenCentral()
++    maven {
++      url "http://${System.getenv('NEXUS_URL')}:8081/repository/maven-public/"
++      credentials {
++        username = 'admin'
++        password = 'admin123'
++      }
++    }
+     maven {
+       url "https://plugins.gradle.org/m2/"
+     }
+@@ -56,7 +62,13 @@ spotless {
+ allprojects {
+
+   repositories {
+-    mavenCentral()
++    maven {
++      url "http://${System.getenv('NEXUS_URL')}:8081/repository/maven-public/"
++      credentials {
++        username = 'admin'
++        password = 'admin123'
++      }
++    }
+   }
+
+   apply plugin: 'idea'
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+index 1c4bcc2..4b49dc5 100644
+--- a/gradle/wrapper/gradle-wrapper.properties
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -1,5 +1,5 @@
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-6.8.1-all.zip
++distributionUrl=https\://mirrors.aliyun.com/macports/distfiles/gradle/gradle-6.8.1-all.zip
+ zipStoreBase=GRADLE_USER_HOME
+ zipStorePath=wrapper/dists
+diff --git a/gradlew b/gradlew
+index fcb97d2..bf66147 100755
+--- a/gradlew
++++ b/gradlew
+@@ -81,7 +81,7 @@ esac
+ # Loop in case we encounter an error.
+ for attempt in 1 2 3; do
+   if [ ! -e "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" ]; then
+-    if ! curl -s -S --retry 3 -L -o "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" "https://raw.githubusercontent.com/gradle/gradle/v6.8.1/gradle/wrapper/gradle-wrapper.jar"; then
++    if ! curl -s -S --retry 3 -L -o "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" "https://mirror.ghproxy.com/https://raw.githubusercontent.com/gradle/gradle/v6.8.1/gradle/wrapper/gradle-wrapper.jar"; then
+       rm -f "$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+       # Pause for a bit before looping in case the server throttled us.
+       sleep 5
+diff --git a/vagrant/aws/aws-init.sh b/vagrant/aws/aws-init.sh
+index f36d4e3..21bb641 100755
+--- a/vagrant/aws/aws-init.sh
++++ b/vagrant/aws/aws-init.sh
+@@ -61,7 +61,7 @@ fi
+ gradle="gradle-2.2.1"
+ if [ -z `which gradle` ] && [ ! -d $base_dir/$gradle ]; then
+     if [ ! -e $gradle-bin.zip ]; then
+-        wget https://services.gradle.org/distributions/$gradle-bin.zip
++        wget https://mirrors.aliyun.com/macports/distfiles/gradle/$gradle-bin.zip
+     fi
+     unzip $gradle-bin.zip
+     rm -rf $gradle-bin.zip
+diff --git a/wrapper.gradle b/wrapper.gradle
+index 2dfca19..6619b12 100644
+--- a/wrapper.gradle
++++ b/wrapper.gradle
+@@ -43,7 +43,7 @@ task bootstrapWrapper() {
+         // github.com servers deprecated TLSv1/TLSv1.1 support some time ago, so older versions
+         // of curl (built against OpenSSL library that doesn't support TLSv1.2) would fail to
+         // fetch the jar.
+-        def wrapperBaseUrl = "https://raw.githubusercontent.com/gradle/gradle/v$fullVersion/gradle/wrapper"
++        def wrapperBaseUrl = "https://mirror.ghproxy.com/https://raw.githubusercontent.com/gradle/gradle/v$fullVersion/gradle/wrapper"
+         def wrapperJarUrl = wrapperBaseUrl + "/gradle-wrapper.jar"
+
+         def bootstrapString = """

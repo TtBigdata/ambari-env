@@ -1,0 +1,29 @@
+diff --git a/bigtop-packages/src/common/solr/do-component-build b/bigtop-packages/src/common/solr/do-component-build
+old mode 100755
+new mode 100644
+index 70571714..ea29aeaf
+--- a/bigtop-packages/src/common/solr/do-component-build
++++ b/bigtop-packages/src/common/solr/do-component-build
+@@ -18,13 +18,20 @@ set -ex
+
+ . `dirname $0`/bigtop.bom
+
+-IVY_MIRROR_PROP=${IVY_MIRROR_PROP:-https://repo1.maven.org/maven2}
++#IVY_MIRROR_PROP=${IVY_MIRROR_PROP:-https://repo1.maven.org/maven2}
++IVY_MIRROR_PROP="http://${NEXUS_URL}:8081/repository/maven-public/"
++IVY_MIRROR_PROP_USERNAME="${NEXUS_USERNAME}"
++IVY_MIRROR_PROP_PASSWORD="${NEXUS_PASSWORD}"
+ BUILD_OPTS="-Dversion=${FULL_VERSION} -Dhadoop.version=${HADOOP_VERSION} \
+             -Dexclude.from.war=nothing   \
+             -Divy.home=${HOME}/.ivy2 -Drepo.maven.org=$IVY_MIRROR_PROP \
+             -Divy_bootstrap_url1=$IVY_MIRROR_PROP \
+             -Divy_install_path=${HOME}/.ant/lib -lib ${HOME}/.ant/lib  \
+-            -Dreactor.repo=file://${HOME}/.m2/repository"
++            -Dreactor.repo=file://${HOME}/.m2/repository \
++            -Drepo.user=${IVY_MIRROR_PROP_USERNAME} \
++            -Drepo.pass=${IVY_MIRROR_PROP_PASSWORD} \
++            -verbose"
++
+
+ # FIXME: this needs to be fixed at the product level
+ ant $BUILD_OPTS ivy-bootstrap

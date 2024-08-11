@@ -1,0 +1,40 @@
+[yum-public-base]
+name=YUM Public Repository
+baseurl=http://172.20.0.2:8081/repository/yum-public/$releasever/os/$basearch/
+enabled=1
+gpgcheck=0
+[yum-public-update]
+name=YUM Public Repository
+baseurl=http://172.20.0.2:8081/repository/yum-public/$releasever/updates/$basearch/
+enabled=1
+gpgcheck=0
+[yum-public-extras]
+name=YUM Public Repository
+baseurl=http://172.20.0.2:8081/repository/yum-public/$releasever/extras/$basearch/
+enabled=1
+gpgcheck=0
+[yum-public-centosplus]
+name=YUM Public Repository
+baseurl=http://172.20.0.2:8081/repository/yum-public/$releasever/centosplus/$basearch/
+enabled=1
+gpgcheck=0
+[yum-public-scl]
+name=YUM Public Repository
+baseurl=http://172.20.0.2:8081/repository/yum-public/7.9.2009/sclo/$basearch/sclo/
+enabled=1
+gpgcheck=0
+[yum-public-scl-rh]
+name=YUM Public Repository
+baseurl=http://172.20.0.2:8081/repository/yum-public/7.9.2009/sclo/$basearch/rh/
+enabled=1
+gpgcheck=0
+[yum-public-epel]
+name=YUM Public Repository
+baseurl=http://172.20.0.2:8081/repository/yum-public/$releasever/$basearch/
+enabled=1
+gpgcheck=0
+[yum-public-mariadb]
+name=YUM Public Repository
+baseurl=http://172.20.0.2:8081/repository/yum-public/yum/10.11/centos7-amd64/
+enabled=1
+gpgcheck=0

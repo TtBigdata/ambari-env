@@ -1,0 +1,38 @@
+diff --git a/ambari-web/app/views/application.js b/ambari-web/app/views/application.js
+index a4b3b14..c928cbd 100644
+--- a/ambari-web/app/views/application.js
++++ b/ambari-web/app/views/application.js
+@@ -47,15 +47,27 @@ App.ApplicationView = Em.View.extend({
+    * Navigation Bar should be initialized after cluster data is loaded
+    */
+   initNavigationBar: function () {
++    let navigationBarObserver = null;
+     if (App.get('router.mainController.isClusterDataLoaded')) {
+-      $('body').on('DOMNodeInserted', '.navigation-bar', () => {
+-        $('.navigation-bar').navigationBar({
+-          fitHeight: true,
+-          collapseNavBarClass: 'icon-double-angle-left',
+-          expandNavBarClass: 'icon-double-angle-right'
++      navigationBarObserver = new MutationObserver((mutationsList) => {
++        mutationsList.forEach((mutation) => {
++          if (mutation.type === 'childList') {
++            mutation.addedNodes.forEach((node) => {
++              if (node.classList && node.classList.contains('navigation-bar')) {
++                $(node).navigationBar({
++                  fitHeight: true,
++                  collapseNavBarClass: 'icon-double-angle-left',
++                  expandNavBarClass: 'icon-double-angle-right'
++                });
++                navigationBarObserver.disconnect();
++              }
++            });
++          }
+         });
+-        $('body').off('DOMNodeInserted', '.navigation-bar');
+       });
++      const targetNode = document.body;
++      const config = { childList: true, subtree: true };
++      navigationBarObserver.observe(targetNode, config);
+     }
+   }.observes('App.router.mainController.isClusterDataLoaded')
+ 

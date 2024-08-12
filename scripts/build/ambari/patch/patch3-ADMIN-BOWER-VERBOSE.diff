@@ -1,0 +1,37 @@
+diff --git a/ambari-admin/pom.xml b/ambari-admin/pom.xml
+index c88eb5e..20e74f0 100644
+--- a/ambari-admin/pom.xml
++++ b/ambari-admin/pom.xml
+@@ -82,7 +82,7 @@
+               <goal>npm</goal>
+             </goals>
+             <configuration>
+-              <arguments>install --unsafe-perm</arguments>
++              <arguments>install --unsafe-perm --registry=https://registry.npmmirror.com --save --verbose --progress</arguments>
+             </configuration>
+           </execution>
+         </executions>
+@@ -103,7 +103,7 @@
+               <arguments>
+                 <argument>${basedir}/src/main/resources/ui/admin-web/node_modules/bower/bin/bower</argument>
+                 <argument>install</argument>
+-                <argument>--allow-root</argument>
++                <argument>--allow-root --verbose</argument>
+               </arguments>
+             </configuration>
+           </execution>
+diff --git a/ambari-admin/src/main/resources/ui/admin-web/package.json b/ambari-admin/src/main/resources/ui/admin-web/package.json
+index d9995ac..a245c93 100644
+--- a/ambari-admin/src/main/resources/ui/admin-web/package.json
++++ b/ambari-admin/src/main/resources/ui/admin-web/package.json
+@@ -26,7 +26,9 @@
+     "karma-ng-html2js-preprocessor": "^1.0.0",
+     "karma-phantomjs-launcher": "^1.0.4",
+     "phantomjs": "^2.1.7",
+-    "protractor": "1.0.0"
++    "protractor": "1.0.0",
++    "q": "^1.5.1",
++    "mout": "^1.0.0"
+   },
+   "scripts": {
+     "prestart": "npm install",

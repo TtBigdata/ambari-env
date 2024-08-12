@@ -1,0 +1,53 @@
+diff --git a/bigtop.bom b/bigtop.bom
+index f96715d..94dfe5e 100644
+--- a/bigtop.bom
++++ b/bigtop.bom
+@@ -460,17 +460,36 @@ bigtop {
+                 archive = "${apache.APACHE_ARCHIVE}/${download_path}"
+             }
+         }
+-/*
+-    'ranger' {
+-      name    = 'ranger'
+-      relNotes = 'Apache Ranger'
+-      version { base = '2.3.0'; pkg = base; release = 1 }
+-      tarball { destination = "release-$name-${version.base}.tar.gz"
+-                source      = destination }
+-      url     { site = "https://github.com/apache/ranger/archive/refs/tags"
+-                archive = site }
+-      packaging = 'rpm'
+-    }
+-*/
++        'ranger' {
++            name = 'ranger'
++            rpm_pkg_suffix = "_" + bigtop.base_version.replace(".", "_")
++            relNotes = 'Apache Ranger'
++            version { base = '2.4.0'; pkg = base; release = 1 }
++            tarball {
++                destination = "release-$name-${version.base}.tar.gz"
++                source = destination
++            }
++            url {
++                site = "https://mirror.ghproxy.com/https://github.com/apache/ranger/archive/refs/tags"
++                archive = site
++            }
++            maven_parallel_build = true
++        }
++
++        'sqoop' {
++            name = 'sqoop'
++            rpm_pkg_suffix = "_" + bigtop.base_version.replace(".", "_")
++            relNotes = 'Apache Sqoop v1'
++            version { base = '1.4.7'; pkg = base; release = 2 }
++            tarball {
++                destination = "${name}-${version.base}.tar.gz"
++                source = destination
++            }
++            url {
++                download_path = "/$name/${version.base}/"
++                site = "${apache.APACHE_MIRROR}/${download_path}"
++                archive = "${apache.APACHE_ARCHIVE}/${download_path}"
++            }
++        }
+     }
+ }

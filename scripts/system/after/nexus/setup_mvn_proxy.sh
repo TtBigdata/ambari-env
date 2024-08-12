@@ -27,18 +27,18 @@ PASSWORD="admin123"
 
 # List of repositories to create
 REPOS=(
+  "aliyun|https://maven.aliyun.com/repository/public"
+  "cloudera-mirror|https://repository.cloudera.com/repository/cloudera-mirror"
   "apache-snapshot1|https://repository.apache.org/content/repositories/snapshots/"
   "apache-snapshot2|https://repository.apache.org/service/local/repositories/snapshots/content/"
-  "cloudera-mirror|https://repository.cloudera.com/repository/cloudera-mirror"
   "cloudera-release|https://repository.cloudera.com/content/repositories/releases/"
   "cloudera-staging|https://repository.cloudera.com/content/repositories/staging/"
   "confluent|https://packages.confluent.io/maven"
   "conjars|https://conjars.wensel.net/repo/"
   "cloudera-libs|https://repository.cloudera.com/repository/libs-release-local/"
   "datanucleus|https://www.datanucleus.org/downloads/maven2/"
-  #"huawei|https://repo.huaweicloud.com/repository/maven"
   "aliyun-spring-plugin|https://maven.aliyun.com/repository/spring-plugin"
-  "aliyun|https://maven.aliyun.com/repository/public"
+  "huawei|https://repo.huaweicloud.com/repository/maven"
 )
 
 # Function to check if a repository exists

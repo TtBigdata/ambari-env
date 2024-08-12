@@ -1,0 +1,219 @@
+diff --git a/ivy.xml b/ivy.xml
+index 5d8ccf7..ffc22ed 100644
+--- a/ivy.xml
++++ b/ivy.xml
+@@ -20,7 +20,7 @@ under the License.
+ <ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
+-  <info organisation="com.cloudera.sqoop" module="${name}">
++  <info organisation="com.cloudera.sqoop" module="${name}" revision="1.4.7">
+     <license name="Apache 2.0"/>
+     <ivyauthor name="Sqoop Team" url="http://github.com/cloudera/sqoop" />
+     <description>
+@@ -189,6 +189,7 @@ under the License.
+       <exclude org="org.apache.thrift" module="thrift"/>
+       <exclude org="log4j" module="log4j"/>
+     </dependency>
++    <dependency org="javax.activation" name="javax.activation-api" rev="1.2.0"/>
+     <dependency org="org.apache.hbase" name="hbase-hadoop2-compat" rev="${hbase.version}" conf="common->default">
+       <artifact name="hbase-hadoop2-compat" type="jar"/>
+       <artifact name="hbase-hadoop2-compat" type="test-jar" ext="jar" m:classifier="tests"/>
+@@ -198,6 +199,7 @@ under the License.
+       <exclude org="org.apache.thrift" module="thrift"/>
+       <exclude org="log4j" module="log4j"/>
+       <exclude org="org.apache.avro" module="avro" />
++      <exclude org="javax.activation" module="javax.activation-api"/>
+     </dependency>
+
+     <dependency org="org.apache.hive.hcatalog" name="hive-hcatalog-core"
+diff --git a/ivy/ivysettings.xml b/ivy/ivysettings.xml
+index 62b0348..d7fddb7 100644
+--- a/ivy/ivysettings.xml
++++ b/ivy/ivysettings.xml
+@@ -1,110 +1,78 @@
+ <ivysettings>
+
+- <!--
+-Licensed to the Apache Software Foundation (ASF) under one
+-or more contributor license agreements.  See the NOTICE file
+-distributed with this work for additional information
+-regarding copyright ownership.  The ASF licenses this file
+-to you under the Apache License, Version 2.0 (the
+-"License"); you may not use this file except in compliance
+-with the License.  You may obtain a copy of the License at
+-
+-  http://www.apache.org/licenses/LICENSE-2.0
+-
+-Unless required by applicable law or agreed to in writing,
+-software distributed under the License is distributed on an
+-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+-KIND, either express or implied.  See the License for the
+-specific language governing permissions and limitations
+-under the License.
+--->
+-
+- <!--
+-  see http://www.jayasoft.org/ivy/doc/configuration
+-  -->
+-  <!-- you can override this property to use mirrors
+-          https://repo1.maven.org/maven2/
+-          http://mirrors.dotsrc.org/maven2
+-          http://ftp.ggi-project.org/pub/packages/maven2
+-          http://mirrors.sunsite.dk/maven2
+-          http://public.planetmirror.com/pub/maven2
+-          http://ibiblio.lsu.edu/main/pub/packages/maven2
+-          http://www.ibiblio.net/pub/packages/maven2
+-  -->
+-  <property name="repo.maven.org" value="https://repo1.maven.org/maven2/"
+-      override="false"/>
+-  <property name="snapshot.apache.org"
+-      value="https://repository.apache.org/content/repositories/snapshots/"
+-      override="false"/>
+-  <property name="staging.cloudera.com"
+-      value="https://repository.cloudera.com/content/repositories/staging/"
+-      override="false"/>
+-  <property name="releases.cloudera.com"
+-      value="https://repository.cloudera.com/content/repositories/releases/"
+-      override="false"/>
+-  <property name="www.datanucleus.org"
+-      value="http://www.datanucleus.org/downloads/maven2/"
+-      override="false"/>
+-  <property name="maven2.pattern"
+-      value="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier])"/>
+-  <property name="repo.dir" value="${user.home}/.m2/repository"/>
+-  <property name="ivy.cache.dir" value="${user.home}/.ivy2/cache"/>
+-  <property name="maven2.pattern.ext"  value="${maven2.pattern}.[ext]"/>
+-  <property name="resolvers" value="default" override="false"/>
+-  <settings defaultResolver="${resolvers}"/>
+-
+-  <resolvers>
+-    <ibiblio name="maven2" root="${repo.maven.org}"
+-        pattern="${maven2.pattern.ext}" m2compatible="true"/>
+-    <ibiblio name="datanucleus" root="${www.datanucleus.org}"
+-        pattern="${maven2.pattern.ext}" m2compatible="true"/>
+-    <ibiblio name="cloudera-releases" root="${releases.cloudera.com}"
+-        pattern="${maven2.pattern.ext}" m2compatible="true"/>
+-    <ibiblio name="apache-snapshot" root="${snapshot.apache.org}"
+-        m2compatible="true" checkmodified="true" changingPattern=".*SNAPSHOT"/>
+-    <ibiblio name="cloudera-staging" root="${staging.cloudera.com}"
+-        m2compatible="true" checkmodified="true" changingPattern=".*SNAPSHOT"/>
+-     <!--Conjars had to be added due to hive's dependency on calcite, which depends on pentaho-aggdesigner-algorithm;5.1.5-jhyde, which is only available in conjars and spring plugins repo -->
+-     <ibiblio name="conjars" m2compatible="true" root="http://conjars.org/repo/"/>
+-    <filesystem name="fs" m2compatible="true">
+-       <artifact pattern="${repo.dir}/[organisation]/[module]/[revision]/[module]-[revision](-[classifier]).[ext]"/>
+-       <ivy pattern="${repo.dir}/[organisation]/[module]/[revision]/[module]-[revision].pom"/>
+-    </filesystem>
+-
+-    <filesystem name="fs2">
+-       <artifact pattern="${ivy.cache.dir}/[organisation]/[module]/jars/[module]-[revision](-[classifier]).[ext]"/>
+-       <ivy pattern="${ivy.cache.dir}/[organisation]/[module]/ivy-[revision].xml"/>
+-    </filesystem>
+-
+-    <chain name="default" dual="true" checkmodified="true"
+-        changingPattern=".*SNAPSHOT">
+-      <resolver ref="fs2"/>
+-      <resolver ref="fs"/>
+-      <resolver ref="apache-snapshot"/>
+-      <resolver ref="datanucleus"/>
+-      <resolver ref="cloudera-releases"/>
+-      <resolver ref="cloudera-staging"/>
+-      <resolver ref="maven2"/>
+-      <resolver ref="conjars"/>
+-    </chain>
+-
+-    <chain name="internal" dual="true">
+-      <resolver ref="fs2"/>
+-      <resolver ref="fs"/>
+-      <resolver ref="apache-snapshot"/>
+-      <resolver ref="datanucleus"/>
+-      <resolver ref="cloudera-staging"/>
+-      <resolver ref="maven2"/>
+-      <resolver ref="conjars"/>
+-    </chain>
+-
+-    <chain name="external">
+-      <resolver ref="maven2"/>
+-      <resolver ref="conjars"/>
+-    </chain>
+-
+-  </resolvers>
+-  <modules>
+-     <module organisation="org.apache.hadoop" name="hadoop-*" resolver="${resolvers}"/>
+-  </modules>
++    <!--
++   Licensed to the Apache Software Foundation (ASF) under one
++   or more contributor license agreements.  See the NOTICE file
++   distributed with this work for additional information
++   regarding copyright ownership.  The ASF licenses this file
++   to you under the Apache License, Version 2.0 (the
++   "License"); you may not use this file except in compliance
++   with the License.  You may obtain a copy of the License at
++
++     http://www.apache.org/licenses/LICENSE-2.0
++
++   Unless required by applicable law or agreed to in writing,
++   software distributed under the License is distributed on an
++   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++   KIND, either express or implied.  See the License for the
++   specific language governing permissions and limitations
++   under the License.
++   -->
++
++    <!--
++     see http://www.jayasoft.org/ivy/doc/configuration
++     -->
++
++    <checksums algorithm=""/>
++    <credentials host="${repo.maven.org}" username="${repo.user}" passwd="${repo.pass}"/>
++    <property name="repo.maven.org" value="${repo.maven.org}"
++              override="true"/>
++
++    <property name="maven2.pattern"
++              value="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier])"/>
++
++    <property name="repo.dir" value="${basedir}/ivy/repository"/>
++    <property name="ivy.cache.dir" value="${basedir}/ivy/cache"/>
++
++    <property name="maven2.pattern.ext" value="${maven2.pattern}.[ext]"/>
++    <property name="resolvers" value="default" override="false"/>
++
++
++    <settings defaultResolver="${resolvers}"/>
++
++    <resolvers>
++        <ibiblio name="maven2" root="${repo.maven.org}"
++                 pattern="${maven2.pattern.ext}" m2compatible="true"/>
++        <filesystem name="fs" m2compatible="true">
++            <artifact
++                    pattern="${repo.dir}/[organisation]/[module]/[revision]/[module]-[revision](-[classifier]).[ext]"/>
++            <ivy pattern="${repo.dir}/[organisation]/[module]/[revision]/[module]-[revision].pom"/>
++        </filesystem>
++
++        <filesystem name="fs2">
++            <artifact pattern="${ivy.cache.dir}/[organisation]/[module]/jars/[module]-[revision](-[classifier]).[ext]"/>
++            <ivy pattern="${ivy.cache.dir}/[organisation]/[module]/ivy-[revision].xml"/>
++        </filesystem>
++
++        <chain name="default" dual="true" checkmodified="false"
++               changingPattern=".*SNAPSHOT">
++            <resolver ref="fs2"/>
++            <resolver ref="fs"/>
++            <resolver ref="maven2"/>
++        </chain>
++
++        <chain name="internal" dual="true">
++            <resolver ref="fs2"/>
++            <resolver ref="fs"/>
++            <resolver ref="maven2"/>
++        </chain>
++
++        <chain name="external">
++            <resolver ref="maven2"/>
++        </chain>
++
++    </resolvers>
++    <modules>
++        <module organisation="org.apache.hadoop" name="hadoop-*" resolver="${resolvers}"/>
++    </modules>
+ </ivysettings>

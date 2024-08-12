@@ -61,6 +61,8 @@ packages=(
   readline-devel
   rpm-build
   zstd*
+  asciidoc
+  xmlto
 )
 
 # 使用单个 yum 命令安装所有包

@@ -16,7 +16,7 @@
 #
 # Author: JaneTTR
 
-set -e
+set -ex
 
 echo "############## BUILD BIGTOP start #############"
 
@@ -43,7 +43,11 @@ patch_files=(
 PROJECT_PATH="/opt/modules/bigtop"
 RPM_PACKAGE="/data/rpm-package/bigtop"
 
-git checkout "$PROJECT_PATH"
+original_directory=$(pwd)
+cd "$PROJECT_PATH"
+git checkout .
+cd "$original_directory"
+
 
 mkdir -p "$RPM_PACKAGE"
 

@@ -16,7 +16,7 @@
 #
 # Author: JaneTTR
 
-set -e
+set -ex
 
 echo "############## ONE_KEY_BUILD start #############"
 

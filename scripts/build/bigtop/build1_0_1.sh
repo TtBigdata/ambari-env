@@ -34,7 +34,10 @@ PROJECT_PATH="/opt/modules/bigtop"
 # 定义一个包含源文件和目标路径的数组
 extract_files=(
   "/scripts/build/bigtop/patch1_0_1/source/package-sqoop.tar.gz:$PROJECT_PATH"
+  "/scripts/build/bigtop/patch1_0_1/source/package-ranger.tar.gz:$PROJECT_PATH"
 )
+#清理原来的文件内容
+rm -rf "${PROJECT_PATH}/bigtop-packages/src/common/ranger"
 
 # 定义一个函数来解压 .tar.gz 文件
 extract_file() {
@@ -97,6 +100,7 @@ CHILD_PATH="$PROJECT_PATH/bigtop-packages/src/common"
 # 定义一个包含源文件和目标路径的数组
 copy_files=(
   "/scripts/build/bigtop/patch1_0_1/child_patch/patch3-SQOOP-COMPILE-FAST.diff:$CHILD_PATH/sqoop"
+  "/scripts/build/bigtop/patch1_0_1/child_patch/patch5-RANGER-FIXED-BUGS.diff:$CHILD_PATH/ranger"
 )
 
 # 定义一个函数来复制文件
@@ -132,6 +136,7 @@ gradle \
   bigtop-select-rpm \
   bigtop-utils-rpm \
   sqoop-rpm \
+  ranger-rpm \
   -PparentDir=/usr/bigtop \
   -Dbuildwithdeps=true \
   -PpkgSuffix

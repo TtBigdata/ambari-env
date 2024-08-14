@@ -24,6 +24,8 @@ export NEXUS_URL=$(cat /scripts/system/before/nexus/.lock)
 export NEXUS_USERNAME="admin"
 export NEXUS_PASSWORD="admin123"
 echo $NEXUS_URL
+
+
 #########################
 ####      PATCH       ###
 #########################
@@ -40,6 +42,8 @@ patch_files=(
 )
 PROJECT_PATH="/opt/modules/bigtop"
 RPM_PACKAGE="/data/rpm-package/bigtop"
+
+git checkout "$PROJECT_PATH"
 
 mkdir -p "$RPM_PACKAGE"
 
@@ -108,6 +112,7 @@ done
 source /opt/rh/devtoolset-7/enable
 
 cd "$PROJECT_PATH"
+
 gradle \
   bigtop-groovy-rpm \
   bigtop-jsvc-rpm \
@@ -128,5 +133,19 @@ gradle \
   -Dbuildwithdeps=true \
   -PpkgSuffix
 
-find "$PROJECT_PATH"/output/*/ -iname '*.rpm' -not -iname '*.src.rpm' -exec cp -rv {} "$RPM_PACKAGE" \;
+
+# 遍历 output 目录下的每个子目录
+for dir in "$PROJECT_PATH"/output/*; do
+    if [ -d "$dir" ]; then
+        # 获取子目录的名称
+        component=$(basename "$dir")
+
+        # 创建目标目录
+        mkdir -p "$RPM_PACKAGE/$component"
+
+        # 查找并复制文件
+        find "$dir" -iname '*.rpm' -not -iname '*.src.rpm' -exec cp -rv {} "$RPM_PACKAGE/$component" \;
+    fi
+done
+
 echo "############## BUILD BIGTOP end #############"

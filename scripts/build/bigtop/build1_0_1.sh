@@ -38,6 +38,8 @@ extract_files=(
 )
 #清理原来的文件内容
 rm -rf "${PROJECT_PATH}/bigtop-packages/src/common/ranger"
+# 清理bigtop-select 因为融合了新组件
+rm -rf "${PROJECT_PATH}/build/bigtop-select  ${PROJECT_PATH}/output/bigtop-select"
 
 # 定义一个函数来解压 .tar.gz 文件
 extract_file() {
@@ -66,6 +68,7 @@ done
 # 定义一个包含所有补丁文件路径的数组
 patch_files=(
   "/scripts/build/bigtop/patch1_0_1/patch0-BOM-COMPONENT-ADD.diff"
+  "/scripts/build/bigtop/patch1_0_1/patch1-INTEGRATION-FOR-COMPONENT.diff"
 )
 RPM_PACKAGE="/data/rpm-package/bigtop"
 
@@ -141,5 +144,16 @@ gradle \
   -Dbuildwithdeps=true \
   -PpkgSuffix
 
-find "$PROJECT_PATH"/output/*/ -iname '*.rpm' -not -iname '*.src.rpm' -exec cp -rv {} "$RPM_PACKAGE" \;
+# 定义要处理的目录
+directories=("ranger" "sqoop" "bigtop-select")
+
+# 遍历每个指定的目录
+for dir in "${directories[@]}"; do
+    # 创建目标目录
+    mkdir -p "$RPM_PACKAGE/$dir"
+
+    # 查找并复制文件
+    find "$PROJECT_PATH/output/$dir" -iname '*.rpm' -not -iname '*.src.rpm' -exec cp -rv {} "$RPM_PACKAGE/$dir" \;
+done
+
 echo "############## BUILD BIGTOP_1_0_1 end #############" -d

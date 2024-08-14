@@ -1,0 +1,722 @@
+diff --git a/bigtop-packages/src/common/bigtop-select/conf-select b/bigtop-packages/src/common/bigtop-select/conf-select
+index d7186fb..3369ac6 100644
+--- a/bigtop-packages/src/common/bigtop-select/conf-select
++++ b/bigtop-packages/src/common/bigtop-select/conf-select
+@@ -16,12 +16,10 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ #
++import errno
+ import optparse
+-import copy
+ import os
+-import re
+ import sys
+-import errno
+ from params import stack_root
+
+ # The global prefix and current directory
+@@ -30,9 +28,16 @@ current = root + "/current"
+ vconfroot = 'etc'
+ lib_root = "usr/lib"
+ vconf_name = "conf.dist"
+-packages = ("hadoop", "hbase", "hive", "hive-hcatalog",
+-            "kafka", "oozie", "spark", "tez",
+-            "zookeeper", "zeppelin", "flink", "solr")
++packages = (
++    "solr", "hadoop",
++    "hbase", "hive", "hive-hcatalog",
++    "kafka", "ranger-admin",
++    "ranger-kms", "ranger-usersync", "ranger-tagsync",
++    "spark", "sqoop",
++    "tez", "livy2", "zookeeper", "zeppelin",
++    "hive2", "tez_hive2",
++    "hive_warehouse_connector", "spark_schema_registry", "flink"
++)
+ ''' conf link
+ /usr/bigtop/3.2.0/usr/lib/${pname}/conf -> /etc/${pname}/conf -> /etc/alternatives/${pname}-conf -> /usr/bigtop/3.2.0/etc/${pname}/conf.dist.0
+ '''
+@@ -87,10 +92,10 @@ def chkPath(pname, sver, cver, method):
+     if cver:
+         confpath = os.path.join(root, sver, vconfroot, pname, vconf_name + '.' + cver)
+     if method == "create" and os.path.exists(confpath):
+-        print(confpath+" exist already")
++        print(confpath + " exist already")
+         sys.exit(1)
+     if method == "set" and not os.path.exists(confpath):
+-        print(confpath+" does not exist")
++        print(confpath + " does not exist")
+         sys.exit(1)
+     return True
+
+@@ -115,7 +120,7 @@ def drcrtConfDir(pname, sver, cver):
+     for confmapkey, confmapval in confmap.items():
+         path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name)
+         if cver:
+-            path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name+'.'+cver)
++            path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name + '.' + cver)
+         print(path)
+
+
+@@ -128,7 +133,7 @@ def crtConfDir(pname, sver, cver):
+     for confmapkey, confmapval in confmap.items():
+         path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name)
+         if cver:
+-            path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name+'.'+cver)
++            path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name + '.' + cver)
+         try:
+             os.makedirs(path)
+             print(path)
+@@ -149,7 +154,7 @@ def drsetConfDir(pname, sver):
+         if os.path.exists(confdir) and os.path.islink(confdir):
+             print(confdir)
+         else:
+-            print(confdir+" does not exist")
++            print(confdir + " does not exist")
+             sys.exit(1)
+
+
+@@ -162,7 +167,7 @@ def setConfDir(pname, sver, cver):
+         # e.g. /usr/bigtop/3.2.0/etc/zookeeper/conf.dist.0
+         path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name)
+         if cver:
+-            path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name+'.'+cver)
++            path = os.path.join(root, sver, vconfroot, confmapkey, vconf_name + '.' + cver)
+         # e.g. /usr/bigtop/3.2.0/usr/lib/zookeeper/conf
+         confdir = os.path.join(root, sver, lib_root, pname, confmapval)
+
+@@ -205,8 +210,6 @@ if options.pname == "hive-hcatalog":
+     confmap = {"hive-hcatalog": "etc/hcatalog",
+                "hive-webhcat": "etc/webhcat"}
+
+-
+-
+ if options.help or len(args) == 0:
+     printHelp()
+ elif not options.pname or not options.sver:
+diff --git a/bigtop-packages/src/common/bigtop-select/distro-select b/bigtop-packages/src/common/bigtop-select/distro-select
+index 7a5bbf8..f940608 100644
+--- a/bigtop-packages/src/common/bigtop-select/distro-select
++++ b/bigtop-packages/src/common/bigtop-select/distro-select
+@@ -35,260 +35,325 @@ spark_wrapper_scripts = ["run-example", "pyspark", "spark-class", "sparkR", "spa
+
+ # The packages and where in the release they should point to
+ leaves = {
+-           "hadoop-client": "hadoop",
+-           "hadoop-hdfs-client": "hadoop-hdfs",
+-           "hadoop-hdfs-datanode": "hadoop-hdfs",
+-           "hadoop-hdfs-journalnode": "hadoop-hdfs",
+-           "hadoop-hdfs-namenode": "hadoop-hdfs",
+-           "hadoop-hdfs-secondarynamenode": "hadoop-hdfs",
+-           "hadoop-hdfs-zkfc": "hadoop-hdfs",
+-           "hadoop-yarn-client": "hadoop-yarn",
+-           "hadoop-yarn-resourcemanager": "hadoop-yarn",
+-           "hadoop-yarn-nodemanager": "hadoop-yarn",
+-           "hadoop-mapreduce-client": "hadoop-mapreduce",
+-           "hadoop-mapreduce-historyserver": "hadoop-mapreduce",
+-           "hbase-client": "hbase",
+-           "hbase-master": "hbase",
+-           "hbase-regionserver": "hbase",
+-           "tez-client": "tez",
+-           "hive-client": "hive",
+-           "hive-metastore": "hive",
+-           "hive-server2": "hive",
+-           "hive-webhcat": "hive-hcatalog",
+-           "kafka-broker": "kafka",
+-           "oozie-client": "oozie",
+-           "oozie-server": "oozie",
+-           "phoenix-client": "phoenix",
+-           "phoenix-server": "phoenix",
+-           "zeppelin-server": "zeppelin",
+-           "zookeeper-client": "zookeeper",
+-           "zookeeper-server": "zookeeper",
+-           "solr-server" : "solr",
+-           "flink-client" : "flink",
+-           "flink-historyserver" : "flink",
+-           "spark-client" : "spark",
+-           "spark-thriftserver" : "spark",
+-           "spark-historyserver" : "spark"
++    'flink-client': 'flink',
++    'flink-historyserver': 'flink',
++    'hadoop-client': 'hadoop',
++    'hadoop-hdfs-client': 'hadoop-hdfs',
++    'hadoop-hdfs-datanode': 'hadoop-hdfs',
++    'hadoop-hdfs-journalnode': 'hadoop-hdfs',
++    'hadoop-hdfs-namenode': 'hadoop-hdfs',
++    'hadoop-hdfs-nfs3': 'hadoop-hdfs',
++    'hadoop-hdfs-portmap': 'hadoop-hdfs',
++    'hadoop-hdfs-secondarynamenode': 'hadoop-hdfs',
++    'hadoop-hdfs-zkfc': 'hadoop-hdfs',
++    'hadoop-httpfs': 'hadoop-httpfs',
++    'hadoop-mapreduce-client': 'hadoop-mapreduce',
++    'hadoop-mapreduce-historyserver': 'hadoop-mapreduce',
++    'hadoop-yarn-client': 'hadoop-yarn',
++    'hadoop-yarn-nodemanager': 'hadoop-yarn',
++    'hadoop-yarn-registrydns': 'hadoop-yarn',
++    'hadoop-yarn-resourcemanager': 'hadoop-yarn',
++    'hadoop-yarn-timelinereader': 'hadoop-yarn',
++    'hadoop-yarn-timelineserver': 'hadoop-yarn',
++    'hbase-client': 'hbase',
++    'hbase-master': 'hbase',
++    'hbase-regionserver': 'hbase',
++    'hbase-thriftserver': 'hbase',
++    'hive-client': 'hive',
++    'hive-metastore': 'hive',
++    'hive-server2': 'hive',
++    'hive-server2-hive': 'hive',
++    'hive-server2-hive2': 'hive2',
++    'hive-webhcat': 'hive-hcatalog',
++    'hive_warehouse_connector': 'hive_warehouse_connector',
++    'kafka-broker': 'kafka',
++    'livy-client': 'livy',
++    'livy-server': 'livy',
++    'livy2-client': 'livy2',
++    'livy2-server': 'livy2',
++    'phoenix-client': 'phoenix',
++    'phoenix-server': 'phoenix',
++    'ranger-admin': 'ranger-admin',
++    'ranger-kms': 'ranger-kms',
++    'ranger-tagsync': 'ranger-tagsync',
++    'ranger-usersync': 'ranger-usersync',
++    'solr-server': 'solr',
++    'spark-atlas-connector': 'spark-atlas-connector',
++    'spark-client': 'spark',
++    'spark-historyserver': 'spark',
++    'spark-schema-registry': 'spark-schema-registry',
++    'spark-thriftserver': 'spark',
++    'spark_llap': 'spark_llap',
++    'sqoop-client': 'sqoop',
++    'sqoop-server': 'sqoop',
++    'tez-client': 'tez',
++    'zeppelin-server': 'zeppelin',
++    'zookeeper-client': 'zookeeper',
++    'zookeeper-server': 'zookeeper'
+ }
+
+ # Define the aliases and the list of leaves they correspond to
+ aliases = {
+-  "all": leaves.keys(),
+-  "client" : ["hadoop-client",
+-              "hbase-client",
+-              "tez-client",
+-              "hive-client",
+-              "oozie-client",
+-              "phoenix-client",
+-              "zookeeper-client",
+-              "flink-client",
+-              "spark-client"],
+-  "hadoop-hdfs-server": ["hadoop-hdfs-datanode",
+-                         "hadoop-hdfs-journalnode",
+-                         "hadoop-hdfs-namenode",
+-                         "hadoop-hdfs-zkfc",
+-                         "hadoop-hdfs-secondarynamenode"],
+-  "hadoop-mapreduce-server": ["hadoop-mapreduce-historyserver"],
+-  "hadoop-yarn-server": ["hadoop-yarn-resourcemanager",
+-                         "hadoop-yarn-nodemanager"],
+-  "hive-server": ["hive-metastore",
+-                  "hive-server2",
+-                  "hive-webhcat"],
++    "all": leaves.keys(),
++    "client": ["hadoop-client",
++               "hbase-client",
++               "oozie-client",
++               "phoenix-client",
++               "slider-client",
++               "sqoop-client",
++               "zookeeper-client",
++               "spark-client",
++               "flink-client",
++               "spark-schema-registry",
++               "spark_llap"],
++    "hadoop-hdfs-server": ["hadoop-hdfs-datanode",
++                           "hadoop-hdfs-journalnode",
++                           "hadoop-hdfs-namenode",
++                           "hadoop-hdfs-zkfc",
++                           "hadoop-hdfs-secondarynamenode",
++                           "hadoop-hdfs-nfs3"],
++    "hadoop-mapreduce-server": ["hadoop-mapreduce-historyserver"],
++    "hadoop-yarn-server": ["hadoop-yarn-resourcemanager",
++                           "hadoop-yarn-nodemanager",
++                           "hadoop-yarn-timelineserver",
++                           "hadoop-yarn-timelinereader",
++                           "hadoop-yarn-registrydns"],
++    "hive-server": ["hive-metastore",
++                    "hive-server2",
++                    "hive-webhcat"],
+ }
+
+ locked_contexts = {
+-  "hadoop-client": [("hadoop-hdfs-client", "hadoop-hdfs"),
+-                    ("hadoop-yarn-client", "hadoop-yarn"),
+-                    ("hadoop-mapreduce-client", "hadoop-mapreduce"),
+-                    ("hive-client", "hive"),
+-                    ("tez-client", "tez"),
+-                    ("spark-client", "spark")]
++    "hadoop-client": [
++        ("hadoop-hdfs-client", "hadoop-hdfs"),
++        ("hadoop-httpfs", "hadoop-httpfs"),
++        ("hadoop-yarn-client", "hadoop-yarn"),
++        ("hadoop-mapreduce-client", "hadoop-mapreduce"),
++        ("hive-client", "hive"),
++        ("tez-client", "tez"),
++        ("livy-client", "livy"),
++        ("livy2-client", "livy2"),
++        ("spark-schema-registry", "spark-schema-registry"),
++        ("spark_llap", "spark_llap"),
++        ("spark-client", "spark"),
++        ("flink-client", "flink")
++    ]
+ }
+
+ command_symlinks = {
+-  "hadoop" : "hadoop-client/../../bin/hadoop",
+-  "hdfs" : "hadoop-hdfs-client/../../bin/hdfs",
+-  "yarn" : "hadoop-yarn-client/../../bin/yarn",
+-  "mapred" : "hadoop-mapreduce-client/../../bin/mapred",
+-  "hbase" : "hbase-client/../../bin/hbase",
+-  "beeline" : "hive-client/../../bin/beeline",
+-  "hive" : "hive-client/../../bin/hive",
+-  "hiveserver2" : "hive-server2/../../bin/hiveserver2",
+-  "hcat" : "hive-webhcat/../../bin/hcat",
+-  "zookeeper-client" : "zookeeper-client/../../bin/zookeeper-client",
+-  "zookeeper-server" : "zookeeper-server/../../bin/zookeeper-server",
+-  "zookeeper-server-cleanup" : "zookeeper-server/../../bin/zookeeper-server-cleanup",
+-  "zookeeper-server-initialize" : "zookeeper-server/../../bin/zookeeper-server-initialize",
+-  "kafka-console-consumer.sh" : "kafka-broker/../../bin/kafka-console-consumer.sh",
+-  "kafka-console-producer.sh" : "kafka-broker/../../bin/kafka-console-producer.sh",
+-  "kafka-run-class.sh" : "kafka-broker/../../bin/kafka-run-class.sh",
+-  "kafka-topics.sh" : "kafka-broker/../../bin/kafka-topics.sh",
+-  "solrctl" : "solr-server/../../bin/solrctl",
+-  "flink" : "flink-client/../../bin/flink",
+-  "find-spark-home" : "spark-client/../../bin/find-spark-home",
+-  "spark-example" : "spark-client/../../bin/spark-example",
+-  "spark-class" : "spark-client/../../bin/spark-class",
+-  "spark-shell" : "spark-client/../../bin/spark-shell",
+-  "spark-sql" : "spark-client/../../bin/spark-sql",
+-  "spark-submit" : "spark-client/../../bin/spark-submit",
+-  "pyspark" : "spark-client/../../bin/pyspark"
++    "hadoop": "hadoop-client/../../bin/hadoop",
++    "hdfs": "hadoop-hdfs-client/../../bin/hdfs",
++    "yarn": "hadoop-yarn-client/../../bin/yarn",
++    "mapred": "hadoop-mapreduce-client/../../bin/mapred",
++    "hbase": "hbase-client/../../bin/hbase",
++    "beeline": "hive-client/../../bin/beeline",
++    "hive": "hive-client/../../bin/hive",
++    "hiveserver2": "hive-server2/../../bin/hiveserver2",
++    "hcat": "hive-webhcat/../../bin/hcat",
++    "zookeeper-client": "zookeeper-client/../../bin/zookeeper-client",
++    "zookeeper-server": "zookeeper-server/../../bin/zookeeper-server",
++    "zookeeper-server-cleanup": "zookeeper-server/../../bin/zookeeper-server-cleanup",
++    "zookeeper-server-initialize": "zookeeper-server/../../bin/zookeeper-server-initialize",
++    "kafka-console-consumer.sh": "kafka-broker/../../bin/kafka-console-consumer.sh",
++    "kafka-console-producer.sh": "kafka-broker/../../bin/kafka-console-producer.sh",
++    "kafka-run-class.sh": "kafka-broker/../../bin/kafka-run-class.sh",
++    "kafka-topics.sh": "kafka-broker/../../bin/kafka-topics.sh",
++    "solrctl": "solr-server/../../bin/solrctl",
++    "flink": "flink-client/../../bin/flink",
++    "find-spark-home": "spark-client/../../bin/find-spark-home",
++    "spark-example": "spark-client/../../bin/spark-example",
++    "spark-class": "spark-client/../../bin/spark-class",
++    "spark-shell": "spark-client/../../bin/spark-shell",
++    "spark-sql": "spark-client/../../bin/spark-sql",
++    "spark-submit": "spark-client/../../bin/spark-submit",
++    "pyspark": "spark-client/../../bin/pyspark",
++    "sqoop": "sqoop-client/bin/sqoop",
++    "sqoop-codegen": "sqoop-client/bin/sqoop-codegen",
++    "sqoop-create-hive-table": "sqoop-client/bin/sqoop-create-hive-table",
++    "sqoop-eval": "sqoop-client/bin/sqoop-eval",
++    "sqoop-export": "sqoop-client/bin/sqoop-export",
++    "sqoop-help": "sqoop-client/bin/sqoop-help",
++    "sqoop-import": "sqoop-client/bin/sqoop-import",
++    "sqoop-import-all-tables": "sqoop-client/bin/sqoop-import-all-tables",
++    "sqoop-job": "sqoop-client/bin/sqoop-job",
++    "sqoop-list-databases": "sqoop-client/bin/sqoop-list-databases",
++    "sqoop-list-tables": "sqoop-client/bin/sqoop-list-tables",
++    "sqoop-merge": "sqoop-client/bin/sqoop-merge",
++    "sqoop-metastore": "sqoop-server/bin/sqoop-metastore",
++    "sqoop-version": "sqoop-client/bin/sqoop-version",
++    "atlas-start": "atlas-server/bin/metadata-start.sh",
++    "atlas-stop": "atlas-server/bin/metadata-stop.sh",
++    "ranger-admin-start": "ranger-admin/ews/ranger-admin-start",
++    "ranger-admin-stop": "ranger-admin/ews/ranger-admin-stop",
++    "ranger-kms": "ranger-kms/ranger-kms",
++    "ranger-usersync-start": "ranger-usersync/ranger-usersync-start",
++    "ranger-usersync-stop": "ranger-usersync/ranger-usersync-stop",
++
+ }
+
+
+ # Given a package or alias name, get the full list of packages
+-def getPackages( name ):
+-  if name == None:
+-    return leaves.keys()
+-  if name in aliases:
+-    return aliases[name]
+-  if name in leaves:
+-    return [ name ]
+-
+-  print("ERROR: Invalid package - " + name)
+-  print('')
+-  printPackages()
+-  sys.exit(1)
++def getPackages(name):
++    if name == None:
++        return leaves.keys()
++    if name in aliases:
++        return aliases[name]
++    if name in leaves:
++        return [name]
++
++    print("ERROR: Invalid package - " + name)
++    print('')
++    printPackages()
++    sys.exit(1)
++
+
+ # Print the status of each of the given packages
+-def listPackages( packages ):
+-  if packages == None:
+-    packages = leaves
+-
+-  packages.sort()
+-  for pkg in packages:
+-    linkname = current + "/" + pkg
+-    if os.path.isdir(linkname):
+-      print(pkg + " - " +
+-             os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(os.readlink(linkname))))))
+-    else:
+-      print(pkg + " - None")
++def listPackages(packages):
++    if packages == None:
++        packages = leaves
++
++    packages.sort()
++    for pkg in packages:
++        linkname = current + "/" + pkg
++        if os.path.isdir(linkname):
++            print(pkg + " - " +
++                  os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(os.readlink(linkname))))))
++        else:
++            print(pkg + " - None")
++
+
+ # Print the avaialable package names
+ def printPackages():
+-  packages = leaves.keys()
+-  packages.sort()
+-  print("Packages:")
+-  for pkg in packages:
+-     print(" " + pkg)
+-  groups = aliases.keys()
+-  groups.sort()
+-  print("Aliases:")
+-  for pkg in groups:
+-    print(" " + pkg)
+-
+-#Print whether given package is supported or not
++    packages = leaves.keys()
++    packages.sort()
++    print("Packages:")
++    for pkg in packages:
++        print(" " + pkg)
++    groups = aliases.keys()
++    groups.sort()
++    print("Aliases:")
++    for pkg in groups:
++        print(" " + pkg)
++
++
++# Print whether given package is supported or not
+ def isSupportedPacakge(package):
+     packages = leaves.keys()
+     if package in packages:
+-      print("%s" % package)
++        print("%s" % package)
+     else:
+-      print(None)
+-      sys.exit(1)
++        print(None)
++        sys.exit(1)
++
+
+ # Print the installed packages
+ def printVersions():
+-  result = {}
+-  for f in os.listdir(root):
+-    if f not in [".", "..", "current", "share", "lost+found"]:
+-      try:
+-        result[tuple(map(int, version_regex.split(f)))] = f
+-      except ValueError:
+-        print("ERROR: Unexpected file/directory found in %s: %s" % (root, f))
+-        sys.exit(1)
++    result = {}
++    for f in os.listdir(root):
++        if f not in [".", "..", "current", "share", "lost+found"]:
++            try:
++                result[tuple(map(int, version_regex.split(f)))] = f
++            except ValueError:
++                print("ERROR: Unexpected file/directory found in %s: %s" % (root, f))
++                sys.exit(1)
++
++    keys = result.keys()
++    keys.sort()
++    for k in keys:
++        print(result[k])
+
+-  keys = result.keys()
+-  keys.sort()
+-  for k in keys:
+-     print(result[k])
+
+ # Set the list of packages to the given version
+ def setPackages(packages, version, rpm_mode):
+-  if packages == None or version == None:
+-    print("ERROR: 'set' command must give both package and version")
+-    print('')
+-    printHelp()
+-    sys.exit(1)
++    if packages == None or version == None:
++        print("ERROR: 'set' command must give both package and version")
++        print('')
++        printHelp()
++        sys.exit(1)
+
+-  target = root + "/" + version + lib_root
+-  if not os.path.isdir(target):
+-    print("ERROR: Invalid version " + version)
+-    print('')
+-    print("Valid choices:")
+-    printVersions()
+-    sys.exit(1)
++    target = root + "/" + version + lib_root
++    if not os.path.isdir(target):
++        print("ERROR: Invalid version " + version)
++        print('')
++        print("Valid choices:")
++        printVersions()
++        sys.exit(1)
++
++    if not os.path.isdir(current):
++        os.mkdir(current, 0755)
++
++    packages.sort()
++    for pkg in packages:
++        linkname = current + "/" + pkg
++        if os.path.islink(linkname) and rpm_mode:
++            continue
++        elif os.path.islink(linkname):
++            os.remove(linkname)
++
++        if os.path.exists(linkname):
++            print("symlink target %s for %s already exists and it is not a symlink." % (linkname, leaves[pkg]))
++            sys.exit(1)
++
++        os.symlink(target + "/" + leaves[pkg], linkname)
++        if pkg in locked_contexts:
++            for (kid, dir) in locked_contexts[pkg]:
++                linkname = current + "/" + kid
++                if os.path.islink(linkname):
++                    os.remove(linkname)
++                os.symlink(target + "/" + dir, linkname)
+
+-  if not os.path.isdir(current):
+-    os.mkdir(current, 0755)
+-
+-  packages.sort()
+-  for pkg in packages:
+-    linkname = current + "/" + pkg
+-    if os.path.islink(linkname) and rpm_mode:
+-      continue
+-    elif os.path.islink(linkname):
+-      os.remove(linkname)
+-
+-    if os.path.exists(linkname):
+-      print("symlink target %s for %s already exists and it is not a symlink." % (linkname, leaves[pkg]))
+-      sys.exit(1)
+-
+-    os.symlink(target + "/" + leaves[pkg], linkname)
+-    if pkg in locked_contexts:
+-      for (kid, dir) in locked_contexts[pkg]:
+-        linkname = current + "/" + kid
+-        if os.path.islink(linkname):
+-          os.remove(linkname)
+-        os.symlink(target + "/" + dir, linkname)
+
+ # Create command symlinks
+ def createCommandSymlinks(packages, rpm_mode):
+-  work_packages = copy.copy(packages)
+-  for pkg in packages:
+-    if pkg in locked_contexts:
+-      for (child, dir) in locked_contexts[pkg]:
+-        work_packages.append(child)
+-  for symlink in command_symlinks:
+-    pkg = command_symlinks[symlink].split('/')[0]
+-    filename = bin_directory + "/" + symlink
+-    target = current + "/" + command_symlinks[symlink]
+-    if rpm_mode and os.path.lexists(filename):
+-      continue
+-    if pkg in work_packages:
+-      if not os.path.lexists(filename):
+-        os.symlink(target, filename)
+-      elif os.path.islink(filename):
+-        old_value = os.readlink(filename)
+-        if old_value != target:
+-          print("WARNING: Replacing link", filename, "from", old_value)
+-          os.remove(filename)
+-          os.symlink(target, filename)
+-      else:
+-        if os.path.basename(filename) not in spark_wrapper_scripts:
+-          print("ERROR:", filename, "is a regular file instead of symlink.")
+-          print('')
+-          print("Please ensure that the BIGTOP 2.1 (and earlier) packages are")
+-          print("removed.")
++    work_packages = copy.copy(packages)
++    for pkg in packages:
++        if pkg in locked_contexts:
++            for (child, dir) in locked_contexts[pkg]:
++                work_packages.append(child)
++    for symlink in command_symlinks:
++        pkg = command_symlinks[symlink].split('/')[0]
++        filename = bin_directory + "/" + symlink
++        target = current + "/" + command_symlinks[symlink]
++        if rpm_mode and os.path.lexists(filename):
++            continue
++        if pkg in work_packages:
++            if not os.path.lexists(filename):
++                os.symlink(target, filename)
++            elif os.path.islink(filename):
++                old_value = os.readlink(filename)
++                if old_value != target:
++                    print("WARNING: Replacing link", filename, "from", old_value)
++                    os.remove(filename)
++                    os.symlink(target, filename)
++            else:
++                if os.path.basename(filename) not in spark_wrapper_scripts:
++                    print("ERROR:", filename, "is a regular file instead of symlink.")
++                    print('')
++                    print("Please ensure that the BIGTOP 2.1 (and earlier) packages are")
++                    print("removed.")
++
+
+ # Do a sanity check on the tables
+ def sanityCheckTables():
+-  for alias in aliases:
+-    for child in aliases[alias]:
+-      if not child in leaves:
+-        print("ERROR: Alias", alias, "has bad child", child)
+-        sys.exit(1)
+-  locked = set()
+-  for parent in locked_contexts:
+-    for (kid, dir) in locked_contexts[parent]:
+-      locked.add(kid)
+-  for symlink in command_symlinks:
+-    parts = command_symlinks[symlink].split('/')
+-    if not parts[0] in leaves and not parts[0] in locked:
+-      print("ERROR: command symlink", symlink, "points to an invalid package",\
+-            parts[0])
+-      sys.exit(1)
++    for alias in aliases:
++        for child in aliases[alias]:
++            if not child in leaves:
++                print("ERROR: Alias", alias, "has bad child", child)
++                sys.exit(1)
++    locked = set()
++    for parent in locked_contexts:
++        for (kid, dir) in locked_contexts[parent]:
++            locked.add(kid)
++    for symlink in command_symlinks:
++        parts = command_symlinks[symlink].split('/')
++        if not parts[0] in leaves and not parts[0] in locked:
++            print("ERROR: command symlink", symlink, "points to an invalid package", \
++                  parts[0])
++            sys.exit(1)
++
+
+ def printHelp():
+-  print("""
++    print("""
+ usage: distro-select [-h] [<command>] [<package>] [<version>]
+
+ Set the selected version of BIGTOP.
+@@ -310,16 +375,18 @@ Commands:
+   supports : Check distro-select supports a specific package
+ """)
+
++
+ def checkCommandParameters(cmd, realLen, rightLen):
+-  if realLen != rightLen:
+-    print("ERROR:", cmd, "command takes", rightLen - 1,\
+-          "parameters, instead of", realLen - 1)
+-    printHelp()
+-    sys.exit(1)
++    if realLen != rightLen:
++        print("ERROR:", cmd, "command takes", rightLen - 1, \
++              "parameters, instead of", realLen - 1)
++        printHelp()
++        sys.exit(1)
+
+- ############################
+- #
+- # Start of main
++
++############################
++#
++# Start of main
+
+ sanityCheckTables()
+
+@@ -333,30 +400,30 @@ parser.add_option("-r", "--rpm-mode", action="store_true", dest="rpm_mode", defa
+ (options, args) = parser.parse_args()
+
+ if options.help:
+-  printHelp()
++    printHelp()
+ elif options.version:
+-  print(bigtop_version)
++    print(bigtop_version)
+ else:
+-  if len(args) == 0 or args[0] == 'status':
+-    if len(args) > 1:
+-      listPackages(getPackages(args[1]))
++    if len(args) == 0 or args[0] == 'status':
++        if len(args) > 1:
++            listPackages(getPackages(args[1]))
++        else:
++            listPackages(getPackages("all"))
++    elif args[0] == "set":
++        checkCommandParameters('set', len(args), 3)
++        pkgs = getPackages(args[1])
++        setPackages(pkgs, args[2], options.rpm_mode)
++        createCommandSymlinks(pkgs, options.rpm_mode)
++    elif args[0] == "versions":
++        checkCommandParameters('versions', len(args), 1)
++        printVersions()
++    elif args[0] == "packages":
++        checkCommandParameters('packages', len(args), 1)
++        printPackages()
++    elif args[0] == "supports":
++        checkCommandParameters('support', len(args), 2)
++        isSupportedPacakge(args[1])
+     else:
+-      listPackages(getPackages("all"))
+-  elif args[0] == "set":
+-    checkCommandParameters('set', len(args), 3)
+-    pkgs = getPackages(args[1])
+-    setPackages(pkgs, args[2], options.rpm_mode)
+-    createCommandSymlinks(pkgs, options.rpm_mode)
+-  elif args[0] == "versions":
+-    checkCommandParameters('versions', len(args), 1)
+-    printVersions()
+-  elif args[0] == "packages":
+-    checkCommandParameters('packages', len(args), 1)
+-    printPackages()
+-  elif args[0] == "supports":
+-    checkCommandParameters('support', len(args), 2)
+-    isSupportedPacakge(args[1])
+-  else:
+-    print("ERROR: Unknown command -", args[0])
+-    printHelp()
+-    sys.exit(1)
++        print("ERROR: Unknown command -", args[0])
++        printHelp()
++        sys.exit(1)

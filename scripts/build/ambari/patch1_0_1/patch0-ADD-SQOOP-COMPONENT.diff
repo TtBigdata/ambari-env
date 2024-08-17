@@ -1,0 +1,1196 @@
+Subject: [PATCH] feat:集成sqoop 所需要的组件
+---
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/sqoop.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/sqoop.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/sqoop.py
+new file mode 100644
+--- /dev/null	(date 1723871906966)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/sqoop.py	(date 1723871906966)
+@@ -0,0 +1,129 @@
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
++# Python Imports
++import os
++
++from resource_management import Script
++# Local Imports
++from resource_management.core.source import InlineTemplate, DownloadSource
++from resource_management.libraries.functions import format
++from resource_management.libraries.functions.get_config import get_config
++from resource_management.libraries.resources.xml_config import XmlConfig
++from resource_management.core.resources.system import File, Link, Directory, Execute
++from ambari_commons.os_family_impl import OsFamilyFuncImpl, OsFamilyImpl
++from ambari_commons import OSConst
++from resource_management.libraries.functions.setup_atlas_hook import has_atlas_in_cluster, setup_atlas_hook, \
++    setup_atlas_jar_symlinks
++from ambari_commons.constants import SERVICE
++
++
++@OsFamilyFuncImpl(os_family=OSConst.WINSRV_FAMILY)
++def sqoop(type=None):
++    import params
++    File(os.path.join(params.sqoop_conf_dir, "sqoop-env.cmd"),
++         content=InlineTemplate(params.sqoop_env_cmd_template)
++         )
++
++
++@OsFamilyFuncImpl(os_family=OsFamilyImpl.DEFAULT)
++def sqoop(type=None):
++    import params
++    Execute('/usr/bin/python /usr/lib/bigtop-select/distro-select set sqoop-client 3.2.0')
++    Link(params.sqoop_lib + "/mysql-connector-java.jar",
++         to='/usr/share/java/mysql-connector-java.jar'
++         )
++
++    jdbc_connector()
++
++    Directory(params.sqoop_conf_dir,
++              owner=params.sqoop_user,
++              group=params.user_group,
++              create_parents=True
++              )
++
++    configs = {}
++    sqoop_site_config = get_config('sqoop-site')
++    if sqoop_site_config:
++        configs.update(sqoop_site_config)
++
++        XmlConfig("sqoop-site.xml",
++                  conf_dir=params.sqoop_conf_dir,
++                  configurations=configs,
++                  configuration_attributes=params.config['configurationAttributes']['sqoop-site'],
++                  owner=params.sqoop_user,
++                  group=params.user_group
++                  )
++
++    # Generate atlas-application.properties.xml file and symlink the hook jars
++    if params.enable_atlas_hook:
++        atlas_hook_filepath = os.path.join(params.sqoop_conf_dir, params.atlas_hook_filename)
++        setup_atlas_hook(SERVICE.SQOOP, params.sqoop_atlas_application_properties, atlas_hook_filepath,
++                         params.sqoop_user, params.user_group)
++        setup_atlas_jar_symlinks("sqoop", params.sqoop_lib)
++
++    File(format("{sqoop_conf_dir}/sqoop-env.sh"),
++         owner=params.sqoop_user,
++         group=params.user_group,
++         content=InlineTemplate(params.sqoop_env_sh_template)
++         )
++    update_config_permissions(["sqoop-env-template.sh",
++                               "sqoop-site-template.xml",
++                               "sqoop-site.xml"])
++    pass
++
++
++def update_config_permissions(names):
++    import params
++    for filename in names:
++        full_filename = os.path.join(params.sqoop_conf_dir, filename)
++        File(full_filename,
++             owner=params.sqoop_user,
++             group=params.user_group,
++             only_if=format("test -e {full_filename}")
++             )
++
++
++def jdbc_connector():
++    import params
++    from urllib2 import HTTPError
++    from resource_management import Fail
++    for jar_name in params.sqoop_jdbc_drivers_dict:
++        if not jar_name or 'mysql' in jar_name:
++            continue
++        downloaded_custom_connector = format("{sqoop_lib}/{jar_name}")
++        custom_connector_to_remove = format("{sqoop_lib}/" + str(params.sqoop_jdbc_drivers_to_remove[jar_name]))
++        jdbc_driver_label = params.sqoop_jdbc_drivers_name_dict[jar_name]
++        driver_curl_source = format("{jdk_location}/{jar_name}")
++        environment = {
++            "no_proxy": format("{ambari_server_hostname}")
++        }
++        try:
++            if custom_connector_to_remove and os.path.isfile(custom_connector_to_remove):
++                File(custom_connector_to_remove, action='delete')
++
++            File(downloaded_custom_connector,
++                 content=DownloadSource(driver_curl_source),
++                 mode=0644,
++                 )
++        except HTTPError:
++            error_string = format("Could not download {driver_curl_source}\n\
++                 Please upload jdbc driver to server by run command:\n\
++                 ambari-server setup --jdbc-db={jdbc_driver_label} --jdbc-driver=<PATH TO DRIVER>\n\
++                 at {ambari_server_hostname}")
++            raise Fail(error_string)
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params.py
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params.py	(date 1719626239000)
+@@ -0,0 +1,27 @@
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
++from ambari_commons import OSCheck
++from resource_management.libraries.functions.default import default
++
++if OSCheck.is_windows_family():
++  from params_windows import *
++else:
++  from params_linux import *
++
++
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/__init__.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/__init__.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/__init__.py
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/__init__.py	(date 1719626239000)
+@@ -0,0 +1,19 @@
++#!/usr/bin/env python
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params_linux.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params_linux.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params_linux.py
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params_linux.py	(date 1719626239000)
+@@ -0,0 +1,169 @@
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
++
++import os
++
++from resource_management.libraries.functions.version import format_stack_version
++from resource_management.libraries.functions.default import default
++from resource_management.libraries.functions.get_kinit_path import get_kinit_path
++from resource_management.libraries.script import Script
++from resource_management.libraries.functions import conf_select
++from resource_management.libraries.functions import stack_select
++from resource_management.libraries.functions.format import format
++from resource_management.libraries.functions import StackFeature
++from resource_management.libraries.functions.get_not_managed_resources import get_not_managed_resources
++from resource_management.libraries.functions.stack_features import check_stack_feature
++from resource_management.libraries.functions.expect import expect
++from resource_management.libraries.resources.hdfs_resource import HdfsResource
++from resource_management.core.exceptions import Fail
++
++
++# a map of the Ambari role to the component name
++# for use with <stack-root>/current/<component>
++SERVER_ROLE_DIRECTORY_MAP = {
++  'SQOOP' : 'sqoop-client'
++}
++
++component_directory = Script.get_component_from_role(SERVER_ROLE_DIRECTORY_MAP, "SQOOP")
++
++config = Script.get_config()
++stack_root = Script.get_stack_root()
++
++# Needed since this is an Atlas Hook service.
++cluster_name = config['clusterName']
++
++ambari_server_hostname = config['ambariLevelParams']['ambari_server_host']
++
++stack_name = default("/clusterLevelParams/stack_name", None)
++
++stack_version_unformatted = config['clusterLevelParams']['stack_version']
++stack_version_formatted = format_stack_version(stack_version_unformatted)
++
++agent_stack_retry_on_unavailability = config['ambariLevelParams']['agent_stack_retry_on_unavailability']
++agent_stack_retry_count = expect("/ambariLevelParams/agent_stack_retry_count", int)
++
++# New Cluster Stack Version that is defined during the RESTART of a Rolling Upgrade
++version = default("/commandParams/version", None)
++
++# default hadoop params
++sqoop_conf_dir = "/usr/lib/sqoop/conf"
++sqoop_lib = "/usr/lib/sqoop/lib"
++hadoop_home = '/usr/lib/hadoop'
++hbase_home = "/usr/lib/hbase"
++hive_home = "/usr/lib/hive"
++sqoop_bin_dir = "/usr/bin"
++zoo_conf_dir = "/etc/zookeeper"
++
++# For stack versions supporting rolling upgrade
++if stack_version_formatted and check_stack_feature(StackFeature.ROLLING_UPGRADE, stack_version_formatted):
++  sqoop_conf_dir = format("{stack_root}/current/sqoop-client/conf")
++  sqoop_lib = format("{stack_root}/current/sqoop-client/lib")
++  hadoop_home = stack_select.get_hadoop_dir("home")
++  hbase_home = format("{stack_root}/current/hbase-client")
++  hive_home = format("{stack_root}/current/hive-client")
++  sqoop_bin_dir = format("{stack_root}/current/sqoop-client/bin/")
++  zoo_conf_dir = format("{stack_root}/current/zookeeper-client/conf")
++
++security_enabled = config['configurations']['cluster-env']['security_enabled']
++smokeuser = config['configurations']['cluster-env']['smokeuser']
++smokeuser_principal = config['configurations']['cluster-env']['smokeuser_principal_name']
++user_group = config['configurations']['cluster-env']['user_group']
++sqoop_env_sh_template = config['configurations']['sqoop-env']['content']
++hdfs_user = config['configurations']['hadoop-env']['hdfs_user']
++
++sqoop_user = config['configurations']['sqoop-env']['sqoop_user']
++
++smoke_user_keytab = config['configurations']['cluster-env']['smokeuser_keytab']
++kinit_path_local = get_kinit_path(default('/configurations/kerberos-env/executable_search_paths', None))
++#JDBC driver jar name
++sqoop_jdbc_drivers_dict = []
++sqoop_jdbc_drivers_name_dict = {}
++sqoop_jdbc_drivers_to_remove = {}
++if "jdbc_drivers" in config['configurations']['sqoop-env']:
++  sqoop_jdbc_drivers = config['configurations']['sqoop-env']['jdbc_drivers'].split(',')
++
++  for driver_name in sqoop_jdbc_drivers:
++    previous_jdbc_jar_name = None
++    driver_name = driver_name.strip()
++    if driver_name and not driver_name == '':
++      if driver_name == "com.microsoft.sqlserver.jdbc.SQLServerDriver":
++        jdbc_name = default("/ambariLevelParams/custom_mssql_jdbc_name", None)
++        previous_jdbc_jar_name = default("/ambariLevelParams/previous_custom_mssql_jdbc_name", None)
++        jdbc_driver_name = "mssql"
++      elif driver_name == "com.mysql.jdbc.Driver":
++        jdbc_name = default("/ambariLevelParams/custom_mysql_jdbc_name", None)
++        previous_jdbc_jar_name = default("/ambariLevelParams/previous_custom_mysql_jdbc_name", None)
++        jdbc_driver_name = "mysql"
++      elif driver_name == "org.postgresql.Driver":
++        jdbc_name = default("/ambariLevelParams/custom_postgres_jdbc_name", None)
++        previous_jdbc_jar_name = default("/ambariLevelParams/previous_custom_postgres_jdbc_name", None)
++        jdbc_driver_name = "postgres"
++      elif driver_name == "oracle.jdbc.driver.OracleDriver":
++        jdbc_name = default("/ambariLevelParams/custom_oracle_jdbc_name", None)
++        previous_jdbc_jar_name = default("/ambariLevelParams/previous_custom_oracle_jdbc_name", None)
++        jdbc_driver_name = "oracle"
++      elif driver_name == "org.hsqldb.jdbc.JDBCDriver":
++        jdbc_name = default("/ambariLevelParams/custom_hsqldb_jdbc_name", None)
++        previous_jdbc_jar_name = default("/ambariLevelParams/previous_custom_hsqldb_jdbc_name", None)
++        jdbc_driver_name = "hsqldb"
++      else: raise Fail(format("JDBC driver '{driver_name}' not supported."))
++    else:
++      continue
++    sqoop_jdbc_drivers_dict.append(jdbc_name)
++    sqoop_jdbc_drivers_to_remove[jdbc_name] = previous_jdbc_jar_name
++    sqoop_jdbc_drivers_name_dict[jdbc_name] = jdbc_driver_name
++jdk_location = config['ambariLevelParams']['jdk_location']
++
++
++########################################################
++############# Atlas related params #####################
++########################################################
++#region Atlas Hooks
++sqoop_atlas_application_properties = default('/configurations/sqoop-atlas-application.properties', {})
++enable_atlas_hook = default('/configurations/sqoop-env/sqoop.atlas.hook', False)
++atlas_hook_filename = default('/configurations/atlas-env/metadata_conf_file', 'atlas-application.properties')
++#endregion
++
++hostname = config['agentLevelParams']['hostname']
++hdfs_user_keytab = config['configurations']['hadoop-env']['hdfs_user_keytab']
++hadoop_bin_dir = stack_select.get_hadoop_dir("bin")
++hadoop_conf_dir = conf_select.get_hadoop_conf_dir()
++hdfs_principal_name = default('/configurations/hadoop-env/hdfs_principal_name', 'missing_principal').replace("_HOST", hostname)
++hdfs_site = config['configurations']['hdfs-site']
++default_fs = config['configurations']['core-site']['fs.defaultFS']
++dfs_type = default("/clusterLevelParams/dfs_type", "")
++
++import functools
++#create partial functions with common arguments for every HdfsResource call
++#to create hdfs directory we need to call params.HdfsResource in code
++HdfsResource = functools.partial(
++ HdfsResource,
++  user = hdfs_user,
++  hdfs_resource_ignore_file = "/var/lib/ambari-agent/data/.hdfs_resource_ignore",
++  security_enabled = security_enabled,
++  keytab = hdfs_user_keytab,
++  kinit_path_local = kinit_path_local,
++  hadoop_bin_dir = hadoop_bin_dir,
++  hadoop_conf_dir = hadoop_conf_dir,
++  principal_name = hdfs_principal_name,
++  hdfs_site = hdfs_site,
++  default_fs = default_fs,
++  immutable_paths = get_not_managed_resources(),
++  dfs_type = dfs_type
++ )
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/sqoop_client.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/sqoop_client.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/sqoop_client.py
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/sqoop_client.py	(date 1719626239000)
+@@ -0,0 +1,63 @@
++#!/usr/bin/env python
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
++
++from resource_management.core.exceptions import ClientComponentHasNoStatus
++from resource_management.core.resources.system import Execute
++from resource_management.libraries.functions.default import default
++from resource_management.libraries.script.script import Script
++from resource_management.libraries.functions import stack_select
++from resource_management.libraries.functions.format import format
++from resource_management.libraries.functions import StackFeature
++from resource_management.libraries.functions.copy_tarball import copy_to_hdfs
++from resource_management.libraries.functions.stack_features import check_stack_feature
++from sqoop import sqoop
++from ambari_commons.os_family_impl import OsFamilyImpl
++from ambari_commons import OSConst
++
++class SqoopClient(Script):
++  def install(self, env):
++    self.install_packages(env)
++    self.configure(env)
++
++  def configure(self, env):
++    import params
++    env.set_params(params)
++    sqoop(type='client')
++
++  def status(self, env):
++    raise ClientComponentHasNoStatus()
++
++@OsFamilyImpl(os_family=OsFamilyImpl.DEFAULT)
++class SqoopClientDefault(SqoopClient):
++  def pre_upgrade_restart(self, env, upgrade_type=None):
++    import params
++    env.set_params(params)
++
++    if params.version and check_stack_feature(StackFeature.ROLLING_UPGRADE, params.version):
++      stack_select.select_packages(params.version)
++      copy_to_hdfs("mapreduce", params.user_group, params.hdfs_user, use_upgrading_version_during_upgrade=True)
++
++
++@OsFamilyImpl(os_family=OSConst.WINSRV_FAMILY)
++class SqoopClientWindows(SqoopClient):
++  pass
++
++if __name__ == "__main__":
++  SqoopClient().execute()
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/service_check.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/service_check.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/service_check.py
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/service_check.py	(date 1719626239000)
+@@ -0,0 +1,59 @@
++#!/usr/bin/env python
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
++
++
++from resource_management.libraries.script.script import Script
++from resource_management.core.resources import Execute
++from resource_management.libraries.functions.default import default
++from resource_management.libraries.functions import format
++from ambari_commons.os_family_impl import OsFamilyImpl
++from ambari_commons import OSConst
++import os
++
++class SqoopServiceCheck(Script):
++  pass
++
++@OsFamilyImpl(os_family=OsFamilyImpl.DEFAULT)
++class SqoopServiceCheckDefault(SqoopServiceCheck):
++
++  def service_check(self, env):
++    import params
++    env.set_params(params)
++    if params.security_enabled:
++      Execute(format("{kinit_path_local}  -kt {smoke_user_keytab} {smokeuser_principal}"),
++              user = params.smokeuser,
++      )
++    Execute("sqoop version",
++            user = params.smokeuser,
++            path = params.sqoop_bin_dir,
++            logoutput = True
++    )
++
++@OsFamilyImpl(os_family=OSConst.WINSRV_FAMILY)
++class SqoopServiceCheckWindows(SqoopServiceCheck):
++  def service_check(self, env):
++    import params
++    env.set_params(params)
++    smoke_cmd = os.path.join(params.stack_root,"Run-SmokeTests.cmd")
++    service = "SQOOP"
++    Execute(format("cmd /C {smoke_cmd} {service}"), logoutput=True)
++
++if __name__ == "__main__":
++  SqoopServiceCheck().execute()
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params_windows.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params_windows.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params_windows.py
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/package/scripts/params_windows.py	(date 1719626239000)
+@@ -0,0 +1,30 @@
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
++
++from resource_management.libraries.script import Script
++import os
++
++config = Script.get_config()
++
++sqoop_user = "sqoop"
++
++stack_root = os.path.abspath(os.path.join(os.environ["HADOOP_HOME"], ".."))
++sqoop_env_cmd_template = config['configurations']['sqoop-env']['content']
++sqoop_home_dir = os.environ["SQOOP_HOME"]
++sqoop_conf_dir = os.path.join(sqoop_home_dir, "conf")
+\ No newline at end of file
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/metainfo.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/metainfo.xml b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/metainfo.xml
+new file mode 100644
+--- /dev/null	(date 1723871927212)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/metainfo.xml	(date 1723871927212)
+@@ -0,0 +1,97 @@
++<?xml version="1.0"?>
++<!--
++   Licensed to the Apache Software Foundation (ASF) under one or more
++   contributor license agreements.  See the NOTICE file distributed with
++   this work for additional information regarding copyright ownership.
++   The ASF licenses this file to You under the Apache License, Version 2.0
++   (the "License"); you may not use this file except in compliance with
++   the License.  You may obtain a copy of the License at
++
++       http://www.apache.org/licenses/LICENSE-2.0
++
++   Unless required by applicable law or agreed to in writing, software
++   distributed under the License is distributed on an "AS IS" BASIS,
++   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++   See the License for the specific language governing permissions and
++   limitations under the License.
++-->
++<metainfo>
++  <schemaVersion>2.0</schemaVersion>
++  <services>
++    <service>
++      <name>SQOOP</name>
++      <displayName>Sqoop</displayName>
++      <comment>Component Sqoop Power By JaneTTR . mail: 3832514048@qq.com ,git: https://gitee.com/tt-bigdata/ambari-env
++      </comment>
++      <version>1.4.7</version>
++
++      <components>
++        <component>
++          <name>SQOOP</name>
++          <displayName>Sqoop Client</displayName>
++          <category>CLIENT</category>
++          <cardinality>1+</cardinality>
++          <versionAdvertised>true</versionAdvertised>
++          <dependencies>
++            <dependency>
++              <name>HDFS/HDFS_CLIENT</name>
++              <scope>host</scope>
++              <auto-deploy>
++                <enabled>true</enabled>
++              </auto-deploy>
++            </dependency>
++            <dependency>
++              <name>MAPREDUCE2/MAPREDUCE2_CLIENT</name>
++              <scope>host</scope>
++              <auto-deploy>
++                <enabled>true</enabled>
++              </auto-deploy>
++            </dependency>
++          </dependencies>
++          <commandScript>
++            <script>scripts/sqoop_client.py</script>
++            <scriptType>PYTHON</scriptType>
++          </commandScript>
++          <configFiles>
++            <configFile>
++              <type>xml</type>
++              <fileName>sqoop-site.xml</fileName>
++              <dictionaryName>sqoop-site</dictionaryName>
++            </configFile>
++            <configFile>
++              <type>env</type>
++              <fileName>sqoop-env.sh</fileName>
++              <dictionaryName>sqoop-env</dictionaryName>
++            </configFile>
++          </configFiles>
++        </component>
++      </components>
++      <osSpecifics>
++        <osSpecific>
++          <osFamily>any</osFamily>
++          <packages>
++            <package>
++              <name>sqoop_${stack_version}</name>
++            </package>
++          </packages>
++        </osSpecific>
++      </osSpecifics>
++      <commandScript>
++        <script>scripts/service_check.py</script>
++        <scriptType>PYTHON</scriptType>
++        <timeout>300</timeout>
++      </commandScript>
++
++      <requiredServices>
++        <service>HDFS</service>
++      </requiredServices>
++
++      <configuration-dependencies>
++        <config-type>sqoop-env</config-type>
++        <config-type>sqoop-site</config-type>
++        <config-type>application.properties</config-type>
++        <config-type>application-properties</config-type>
++      </configuration-dependencies>
++    </service>
++  </services>
++</metainfo>
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-env.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-env.xml b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-env.xml
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-env.xml	(date 1719626239000)
+@@ -0,0 +1,93 @@
++<?xml version="1.0"?>
++<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
++<!--
++/**
++ * Licensed to the Apache Software Foundation (ASF) under one
++ * or more contributor license agreements.  See the NOTICE file
++ * distributed with this work for additional information
++ * regarding copyright ownership.  The ASF licenses this file
++ * to you under the Apache License, Version 2.0 (the
++ * "License"); you may not use this file except in compliance
++ * with the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++-->
++<configuration supports_adding_forbidden="true">
++  <!-- sqoop-env.sh -->
++  <property>
++    <name>sqoop.atlas.hook</name>
++    <value>false</value>
++    <display-name>Enable Atlas Hook</display-name>
++    <description>Enable Atlas Hook</description>
++    <value-attributes>
++      <type>boolean</type>
++      <overridable>false</overridable>
++    </value-attributes>
++    <on-ambari-upgrade add="false"/>
++    <depends-on>
++      <property>
++        <type>application-properties</type>
++        <name>atlas.rest.address</name>
++      </property>
++    </depends-on>
++  </property>
++  <property>
++    <name>content</name>
++    <display-name>sqoop-env template</display-name>
++    <description>This is the jinja template for sqoop-env.sh file</description>
++    <value>
++# Set Hadoop-specific environment variables here.
++
++#Set path to where bin/hadoop is available
++#Set path to where bin/hadoop is available
++export HADOOP_HOME=${HADOOP_HOME:-{{hadoop_home}}}
++
++#set the path to where bin/hbase is available
++export HBASE_HOME=${HBASE_HOME:-{{hbase_home}}}
++
++#Set the path to where bin/hive is available
++export HIVE_HOME=${HIVE_HOME:-{{hive_home}}}
++
++#Set the path for where zookeper config dir is
++export ZOOCFGDIR=${ZOOCFGDIR:-/etc/zookeeper/conf}
++
++# add libthrift in hive to sqoop class path first so hive imports work
++export SQOOP_USER_CLASSPATH="`ls ${HIVE_HOME}/lib/libthrift-*.jar 2&gt; /dev/null`:${SQOOP_USER_CLASSPATH}"
++    </value>
++    <value-attributes>
++      <type>content</type>
++    </value-attributes>
++    <on-ambari-upgrade add="true"/>
++  </property>
++  <property>
++    <name>sqoop_user</name>
++    <display-name>Sqoop User</display-name>
++    <description>User to run Sqoop as</description>
++    <property-type>USER</property-type>
++    <value>sqoop</value>
++    <value-attributes>
++      <type>user</type>
++      <overridable>false</overridable>
++      <user-groups>
++        <property>
++          <type>cluster-env</type>
++          <name>user_group</name>
++        </property>
++      </user-groups>
++    </value-attributes>
++    <on-ambari-upgrade add="true"/>
++  </property>
++  <property>
++    <name>jdbc_drivers</name>
++    <description>Comma separated list of additional JDBC drivers class names</description>
++    <value> </value>
++    <on-ambari-upgrade add="true"/>
++  </property>
++</configuration>
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json
+--- a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json	(revision 1508876cb51e5ae5cb55429e52f4f91144394b73)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json	(date 1723873017305)
+@@ -406,6 +406,20 @@
+             "zookeeper-server"
+           ]
+         }
++      },
++      "SQOOP": {
++        "SQOOP": {
++          "STACK-SELECT-PACKAGE": "sqoop-client",
++          "INSTALL": [
++            "sqoop-client"
++          ],
++          "PATCH": [
++            "sqoop-client"
++          ],
++          "STANDARD": [
++            "sqoop-client"
++          ]
++        }
+       }
+     },
+     "conf-select": {
+@@ -499,6 +513,13 @@
+           "current_dir": "{0}/current/zookeeper-client/conf",
+           "component": "zookeeper-client"
+         }
++      ],
++      "sqoop": [
++        {
++          "conf_dir": "/etc/sqoop/conf",
++          "current_dir": "{0}/current/sqoop-client/conf",
++          "component": "sqoop-client"
++        }
+       ]
+     },
+     "conf-select-patching": {
+@@ -556,12 +577,18 @@
+         "packages": [
+           "zookeeper"
+         ]
++      },
++      "SQOOP": {
++        "packages": [
++          "sqoop"
++        ]
+       }
+     },
+     "upgrade-dependencies": {
+       "HIVE": [
+         "TEZ",
+-        "MAPREDUCE2"
++        "MAPREDUCE2",
++        "SQOOP"
+       ],
+       "TEZ": [
+         "HIVE"
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-site.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-site.xml b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-site.xml
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-site.xml	(date 1719626239000)
+@@ -0,0 +1,38 @@
++<?xml version="1.0"?>
++<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
++<!--
++/**
++ * Licensed to the Apache Software Foundation (ASF) under one
++ * or more contributor license agreements.  See the NOTICE file
++ * distributed with this work for additional information
++ * regarding copyright ownership.  The ASF licenses this file
++ * to you under the Apache License, Version 2.0 (the
++ * "License"); you may not use this file except in compliance
++ * with the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++-->
++<configuration>
++  <!-- This property was valid in HDP 2.3 and 2.4, but removed in HDP 2.5 -->
++  <property>
++    <name>sqoop.job.data.publish.class</name>
++    <on-ambari-upgrade add="true"/>
++    <depends-on>
++      <property>
++        <type>sqoop-env</type>
++        <name>sqoop.atlas.hook</name>
++      </property>
++      <property>
++        <type>application-properties</type>
++        <name>atlas.rest.address</name>
++      </property>
++    </depends-on>
++  </property>
++</configuration>
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-atlas-application.properties.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-atlas-application.properties.xml b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-atlas-application.properties.xml
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/configuration/sqoop-atlas-application.properties.xml	(date 1719626239000)
+@@ -0,0 +1,47 @@
++<?xml version="1.0"?>
++<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
++<!--
++/**
++ * Licensed to the Apache Software Foundation (ASF) under one
++ * or more contributor license agreements.  See the NOTICE file
++ * distributed with this work for additional information
++ * regarding copyright ownership.  The ASF licenses this file
++ * to you under the Apache License, Version 2.0 (the
++ * "License"); you may not use this file except in compliance
++ * with the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++-->
++<configuration>
++  <!--
++  These two security properties will only be read if the cluster is Kerberized, but ok to add them even without Kerberos.
++  It's important to have at least one property in this config file so it gets added while merging configs during EU/RU
++  from an earlier stack to HDP 2.5+.
++  Also, it allows a fresh install with Sqoop to expose this config type in the UI.
++  -->
++  <property>
++    <name>atlas.jaas.KafkaClient.option.useTicketCache</name>
++    <value>true</value>
++    <description>
++      Set this to "true" if you want the TGT to be obtained from the ticket cache.
++      Set this option to "false" if you do not want this module to use the ticket cache.
++    </description>
++    <on-ambari-upgrade add="false"/>
++  </property>
++  <property>
++    <name>atlas.jaas.KafkaClient.option.renewTicket</name>
++    <value>true</value>
++    <description>
++      Set this to "true" if you want the TGT to renew the ticket when it expires.
++      Set this option to "false" if you do not want this module to renew tickets.
++    </description>
++    <on-ambari-upgrade add="false"/>
++  </property>
++</configuration>
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/kerberos.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/kerberos.json b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/kerberos.json
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/kerberos.json	(date 1719626239000)
+@@ -0,0 +1,20 @@
++{
++  "services": [
++    {
++      "name": "SQOOP",
++      "configurations": [
++        {
++          "sqoop-atlas-application.properties": {
++            "atlas.jaas.KafkaClient.option.useTicketCache": "true",
++            "atlas.jaas.KafkaClient.option.renewTicket": "true"
++          }
++        }
++      ],
++      "components": [
++        {
++          "name": "SQOOP"
++        }
++      ]
++    }
++  ]
++}
+\ No newline at end of file
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/service_advisor.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/service_advisor.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/service_advisor.py
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/service_advisor.py	(date 1719626239000)
+@@ -0,0 +1,192 @@
++#!/usr/bin/env ambari-python-wrap
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++"""
++
++# Python imports
++import imp
++import os
++import traceback
++import re
++import socket
++import fnmatch
++
++
++from resource_management.core.logger import Logger
++
++SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
++STACKS_DIR = os.path.join(SCRIPT_DIR, '../../../../')
++PARENT_FILE = os.path.join(STACKS_DIR, 'service_advisor.py')
++
++try:
++  with open(PARENT_FILE, 'rb') as fp:
++    service_advisor = imp.load_module('service_advisor', fp, PARENT_FILE, ('.py', 'rb', imp.PY_SOURCE))
++except Exception as e:
++  traceback.print_exc()
++  print "Failed to load parent"
++
++class SqoopServiceAdvisor(service_advisor.ServiceAdvisor):
++
++  def __init__(self, *args, **kwargs):
++    self.as_super = super(SqoopServiceAdvisor, self)
++    self.as_super.__init__(*args, **kwargs)
++
++    # Always call these methods
++    self.modifyMastersWithMultipleInstances()
++    self.modifyCardinalitiesDict()
++    self.modifyHeapSizeProperties()
++    self.modifyNotValuableComponents()
++    self.modifyComponentsNotPreferableOnServer()
++    self.modifyComponentLayoutSchemes()
++
++  def modifyMastersWithMultipleInstances(self):
++    """
++    Modify the set of masters with multiple instances.
++    Must be overriden in child class.
++    """
++    # Nothing to do
++    pass
++
++  def modifyCardinalitiesDict(self):
++    """
++    Modify the dictionary of cardinalities.
++    Must be overriden in child class.
++    """
++    # Nothing to do
++    pass
++
++  def modifyHeapSizeProperties(self):
++    """
++    Modify the dictionary of heap size properties.
++    Must be overriden in child class.
++    """
++    pass
++
++  def modifyNotValuableComponents(self):
++    """
++    Modify the set of components whose host assignment is based on other services.
++    Must be overriden in child class.
++    """
++    # Nothing to do
++    pass
++
++  def modifyComponentsNotPreferableOnServer(self):
++    """
++    Modify the set of components that are not preferable on the server.
++    Must be overriden in child class.
++    """
++    # Nothing to do
++    pass
++
++  def modifyComponentLayoutSchemes(self):
++    """
++    Modify layout scheme dictionaries for components.
++    The scheme dictionary basically maps the number of hosts to
++    host index where component should exist.
++    Must be overriden in child class.
++    """
++    # Nothing to do
++    pass
++
++  def getServiceComponentLayoutValidations(self, services, hosts):
++    """
++    Get a list of errors.
++    Must be overriden in child class.
++    """
++
++    return self.getServiceComponentCardinalityValidations(services, hosts, "SQOOP")
++
++  def getServiceConfigurationRecommendations(self, configurations, clusterData, services, hosts):
++    """
++    Entry point.
++    Must be overriden in child class.
++    """
++    #Logger.info("Class: %s, Method: %s. Recommending Service Configurations." %
++    #            (self.__class__.__name__, inspect.stack()[0][3]))
++
++    recommender = SqoopRecommender()
++    recommender.recommendSqoopConfigurationsFromHDP23(configurations, clusterData, services, hosts)
++
++
++
++  def getServiceConfigurationsValidationItems(self, configurations, recommendedDefaults, services, hosts):
++    """
++    Entry point.
++    Validate configurations for the service. Return a list of errors.
++    The code for this function should be the same for each Service Advisor.
++    """
++    #Logger.info("Class: %s, Method: %s. Validating Configurations." %
++    #            (self.__class__.__name__, inspect.stack()[0][3]))
++
++    validator = SqoopValidator()
++    # Calls the methods of the validator using arguments,
++    # method(siteProperties, siteRecommendations, configurations, services, hosts)
++    return validator.validateListOfConfigUsingMethod(configurations, recommendedDefaults, services, hosts, validator.validators)
++
++
++
++class SqoopRecommender(service_advisor.ServiceAdvisor):
++  """
++  Sqoop Recommender suggests properties when adding the service for the first time or modifying configs via the UI.
++  """
++
++  def __init__(self, *args, **kwargs):
++    self.as_super = super(SqoopRecommender, self)
++    self.as_super.__init__(*args, **kwargs)
++
++
++  def recommendSqoopConfigurationsFromHDP23(self, configurations, clusterData, services, hosts):
++    putSqoopSiteProperty = self.putProperty(configurations, "sqoop-site", services)
++    putSqoopEnvProperty = self.putProperty(configurations, "sqoop-env", services)
++
++    enable_external_atlas_for_sqoop = False
++    enable_atlas_hook = False
++    servicesList = [service["StackServices"]["service_name"] for service in services["services"]]
++    if 'sqoop-atlas-application.properties' in services['configurations'] and 'enable.external.atlas.for.sqoop' in services['configurations']['sqoop-atlas-application.properties']['properties']:
++      enable_external_atlas_for_sqoop = services['configurations']['sqoop-atlas-application.properties']['properties']['enable.external.atlas.for.sqoop'].lower() == "true"
++
++    if "ATLAS" in servicesList:
++      putSqoopEnvProperty("sqoop.atlas.hook", "true")
++    elif enable_external_atlas_for_sqoop:
++      putSqoopEnvProperty("sqoop.atlas.hook", "true")
++    else:
++      putSqoopEnvProperty("sqoop.atlas.hook", "false")
++
++    if 'sqoop-env' in configurations and 'sqoop.atlas.hook' in configurations['sqoop-env']['properties']:
++      enable_atlas_hook = configurations['sqoop-env']['properties']['sqoop.atlas.hook'] == "true"
++    elif 'sqoop-env' in services['configurations'] and 'sqoop.atlas.hook' in services['configurations']['sqoop-env']['properties']:
++      enable_atlas_hook = services['configurations']['sqoop-env']['properties']['sqoop.atlas.hook'] == "true"
++
++    if enable_atlas_hook:
++      putSqoopSiteProperty('sqoop.job.data.publish.class', 'org.apache.atlas.sqoop.hook.SqoopHook')
++    else:
++      putSqoopSitePropertyAttribute = self.putPropertyAttribute(configurations, "sqoop-site")
++      putSqoopSitePropertyAttribute('sqoop.job.data.publish.class', 'delete', 'true')
++
++
++
++class SqoopValidator(service_advisor.ServiceAdvisor):
++  """
++  Sqoop Validator checks the correctness of properties whenever the service is first added or the user attempts to
++  change configs via the UI.
++  """
++
++  def __init__(self, *args, **kwargs):
++    self.as_super = super(SqoopValidator, self)
++    self.as_super.__init__(*args, **kwargs)
++
++    self.validators = []
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/role_command_order.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/role_command_order.json b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/role_command_order.json
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/SQOOP/role_command_order.json	(date 1719626239000)
+@@ -0,0 +1,6 @@
++{
++  "general_deps" : {
++    "_comment" : "dependencies for SQOOP",
++    "SQOOP_SERVICE_CHECK-SERVICE_CHECK": ["NODEMANAGER-START", "RESOURCEMANAGER-START"]
++  }
++}

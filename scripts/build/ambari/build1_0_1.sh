@@ -18,7 +18,7 @@
 
 set -ex
 
-echo "############## BUILD AMBARI start #############"
+echo "############## BUILD AMBARI1_0_1 start #############"
 
 #########################
 ####      PATCH       ###
@@ -26,11 +26,7 @@ echo "############## BUILD AMBARI start #############"
 
 # 定义一个包含所有补丁文件路径的数组
 patch_files=(
-  "/scripts/build/ambari/patch/patch0-BOWER-MIRROR.diff"
-  #如果不想要汉化，请注释下行代码
-  "/scripts/build/ambari/patch/patch1-CONVERT-CN.diff"
-  "/scripts/build/ambari/patch/patch2-FIXED-POS-DISPLAY.diff"
-  "/scripts/build/ambari/patch/patch3-ADMIN-BOWER-VERBOSE.diff"
+  "/scripts/build/ambari/patch1_0_1/patch0-ADD-SQOOP-COMPONENT.diff"
 )
 PROJECT_PATH="/opt/modules/ambari"
 RPM_PACKAGE="/data/rpm-package/ambari"
@@ -63,10 +59,8 @@ done
 
 cd "$PROJECT_PATH"
 
-tar -zxvf /scripts/build/ambari/patch/source/bower.tar.gz -C "$PROJECT_PATH/ambari-admin/src/main/resources/ui/admin-web/"
-
 #mvn -T 16 -B clean install package rpm:rpm -Drat.skip=true -Dcheckstyle.skip=true -DskipTests -Dpython.ver="python >= 2.6" -Preplaceurl -X
-#mvn -T 16 -B  install package rpm:rpm -Drat.skip=true -Dcheckstyle.skip=true -DskipTests -Dpython.ver="python >= 2.6" -Preplaceurl -X
+mvn -T 16 -B  install package rpm:rpm -Drat.skip=true -Dcheckstyle.skip=true -DskipTests -Dpython.ver="python >= 2.6" -Preplaceurl
 
-#find "$PROJECT_PATH" -iname '*.rpm' -exec cp -rv {} "$RPM_PACKAGE" \;
-echo "############## BUILD AMBARI end #############"
+find "$PROJECT_PATH" -iname '*.rpm' -exec cp -rv {} "$RPM_PACKAGE" \;
+echo "############## BUILD AMBARI1_0_1 end #############"

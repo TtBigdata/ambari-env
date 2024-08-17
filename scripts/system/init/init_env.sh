@@ -62,7 +62,7 @@ enabled=1
 gpgcheck=0
 [yum-public-mariadb]
 name=YUM Public Repository
-baseurl=http://$NEXUS_IP:8081/repository/yum-public/yum/10.11/centos7-amd64/
+baseurl=http://$NEXUS_IP:8081/repository/yum-public/yum/10.11.8/centos7-amd64/
 enabled=1
 gpgcheck=0
 EOF

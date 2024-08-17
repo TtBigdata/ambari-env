@@ -315,7 +315,7 @@ index c88eb5e..9222b7b 100644
 +                        </goals>
 +                        <configuration>
 +                            <npmDownloadRoot>https://registry.npmmirror.com/npm/-/</npmDownloadRoot>
-+                            <nodeDownloadRoot>https://registry.npmmirror.com/binaries/node/</nodeDownloadRoot>
++                            <nodeDownloadRoot>https://cdn.npmmirror.com/binaries/node/</nodeDownloadRoot>
 +                        </configuration>
 +                    </execution>
 +                    <execution>

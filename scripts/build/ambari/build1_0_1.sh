@@ -27,6 +27,7 @@ echo "############## BUILD AMBARI1_0_1 start #############"
 # 定义一个包含所有补丁文件路径的数组
 patch_files=(
   "/scripts/build/ambari/patch1_0_1/patch0-ADD-SQOOP-COMPONENT.diff"
+  "/scripts/build/ambari/patch1_0_1/patch1-ADD-RANGER-COMPONENT.diff"
 )
 PROJECT_PATH="/opt/modules/ambari"
 RPM_PACKAGE="/data/rpm-package/ambari"

@@ -1,0 +1,403 @@
+Subject: [PATCH] feature：集成redis-7.4.0
+---
+Index: bigtop-packages/src/rpm/redis/SPECS/redis.spec
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bigtop-packages/src/rpm/redis/SPECS/redis.spec b/bigtop-packages/src/rpm/redis/SPECS/redis.spec
+new file mode 100644
+--- /dev/null	(date 1724164721557)
++++ b/bigtop-packages/src/rpm/redis/SPECS/redis.spec	(date 1724164721557)
+@@ -0,0 +1,154 @@
++# Licensed to the Apache Software Foundation (ASF) under one or more
++# contributor license agreements.  See the NOTICE file distributed with
++# this work for additional information regarding copyright ownership.
++# The ASF licenses this file to You under the Apache License, Version 2.0
++# (the "License"); you may not use this file except in compliance with
++# the License.  You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++
++# 定义服务名称
++%define component_name redis
++%define group_name hadoop
++%define user_name %{component_name}
++# 定义描述内容
++%define component_summary Redis is an in-memory database that persists on disk.
++%define component_license RSALv2
++%define component_url http://redis.io/
++%define component_base_version %{redis_base_version}
++%define component_version %{redis_version}
++%define component_release %{redis_release}
++
++#定义 dl 解压前压缩包的名称 redis 的是 7.4.0.tar.gz
++%define component_tarball_origin_name %{component_base_version}.tar.gz
++#定义 dl 解压后的压缩包名称  redis-7.4.0
++%define component_tarball_name %{component_name}-%{component_base_version}
++
++
++# model content start====================
++# ban debuginfo
++%define debug_package %{nil}
++# Deactivating symlinks checks
++%define __os_install_post %{nil}
++%define __jar_repack %{nil}
++%define component_pkg_name %{component_name}%{pkg_name_suffix}
++%define alternatives_cmd alternatives
++%define etc_default %{parent_dir}/etc/default
++# 定义 /usr/bigtop/ 下的 usr var etc 路径
++%define usr_lib_component %{parent_dir}/usr/lib/%{component_name}
++%define var_lib_component %{parent_dir}/var/lib/%{component_name}
++%define etc_component %{parent_dir}/etc/%{component_name}
++
++# 定义 bin man doc 三大目录
++%define bin_dir %{parent_dir}%{_bindir}
++%define man_dir %{parent_dir}%{_mandir}
++%define doc_dir %{parent_dir}%{_docdir}
++
++# 定义无前缀的 运行路径，日志路径，配置路径
++%define np_var_log_component_name /var/log/%{component_name}
++%define np_var_run_component_name /var/run/%{component_name}
++%define np_etc_component_name /etc/%{component_name}
++
++
++Name: %{component_pkg_name}
++Version: %{component_version}
++Release: %{component_release}
++Summary: %{component_summary}
++License: %{component_license}
++URL: %{component_url}
++Group: Development/Libraries
++Buildroot: %{_topdir}/INSTALL/%{name}-%{version}
++Source0: %{component_tarball_origin_name}
++Source1: do-component-build
++Source2: install_%{component_name}.sh
++
++
++#BIGTOP_PATCH_FILES
++
++
++%description
++Redis is an in-memory database that persists on disk. The data model is key-value,
++but many different kind of values are supported: Strings, Lists, Sets, Sorted Sets,
++Hashes, Streams, HyperLogLogs, Bitmaps.
++
++
++%prep
++%setup -n %{component_tarball_name}
++
++#BIGTOP_PATCH_COMMANDS
++
++%build
++env COMPONENT_VERSION=%{version} bash %{SOURCE1}
++
++
++%install
++%__rm -rf $RPM_BUILD_ROOT
++bash %{SOURCE2} \
++    --bin-dir=%{bin_dir} \
++    --build-dir=%{_topdir}/BUILD \
++    --doc-dir=%{doc_dir} \
++    --etc-dir=%{etc_component} \
++    --lib-dir=%{usr_lib_component} \
++    --man-dir=%{man_dir} \
++    --prefix=$RPM_BUILD_ROOT \
++    --tar-name=%{component_tarball_name} \
++    --var-dir=%{var_lib_component}
++
++%clean
++rm -rf $RPM_BUILD_ROOT
++
++%pre
++if [ "$1" = 1 ]; then
++    getent group %{group_name} >/dev/null  || groupadd -r %{group_name}
++    getent passwd %{user_name} >/dev/null || /usr/sbin/useradd --comment "%{user_name}" --shell /bin/bash -M -r -g %{user_name} -G %{group_name} --home /home/%{user_name} %{user_name}
++fi
++
++%post
++if [ "$1" = 1 ]; then
++
++    mkdir -p %{np_etc_component_name}
++     # set etc dir
++    %{alternatives_cmd} --install %{np_etc_component_name}/conf %{component_name}-conf %{etc_component}/conf.empty 30
++     # set log dir
++    mkdir -p %{np_var_log_component_name}
++
++    mkdir -p /var/lib/%{component_name}
++    chown -R %{user_name}:%{group_name} /var/lib/%{component_name}
++fi
++
++%preun
++if [ "$1" = 0 ]; then
++
++     # remove etc dir
++   %{alternatives_cmd} --remove %{component_name}-conf %{etc_component}/conf.empty || :
++
++fi
++
++%postun
++if [ "$1" = 0 ]; then
++  rm -rf %{np_var_log_component_name}/
++fi
++
++#######################
++#### FILES SECTION ####
++#######################
++
++%files
++%defattr(-,%{user_name},%{group_name})
++%{usr_lib_component}
++%{var_lib_component}
++%{etc_component}
++%attr(0775,%{user_name},%{group_name}) %{np_var_log_component_name}
++
++%changelog
++* Mon Aug 19 2024 JaneTTR <3832514048@qq.com> - 1.0-1
++- Initial package.
++
++
+Index: bigtop.bom
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bigtop.bom b/bigtop.bom
+--- a/bigtop.bom	(revision b48d978759df451b11f60ed929e05f6003fb9b75)
++++ b/bigtop.bom	(date 1723978744392)
+@@ -491,5 +491,20 @@
+                 archive = "${apache.APACHE_ARCHIVE}/${download_path}"
+             }
+         }
++
++        'redis' {
++            name = 'redis'
++            rpm_pkg_suffix = "_" + bigtop.base_version.replace(".", "_")
++            relNotes = 'Redis v7.4.0 Release'
++            version { base = '7.4.0'; pkg = base; release = 1 }
++            tarball {
++                destination = "${version.base}.tar.gz"
++                source = destination
++            }
++            url {
++                site = "https://mirror.ghproxy.com/https://github.com/redis/redis/archive/refs/tags/"
++                archive = site
++            }
++        }
+     }
+ }
+Index: bigtop-packages/src/common/redis/do-component-build
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bigtop-packages/src/common/redis/do-component-build b/bigtop-packages/src/common/redis/do-component-build
+new file mode 100644
+--- /dev/null	(date 1724076950793)
++++ b/bigtop-packages/src/common/redis/do-component-build	(date 1724076950793)
+@@ -0,0 +1,22 @@
++#!/bin/sh
++# Licensed to the Apache Software Foundation (ASF) under one or more
++# contributor license agreements.  See the NOTICE file distributed with
++# this work for additional information regarding copyright ownership.
++# The ASF licenses this file to You under the Apache License, Version 2.0
++# (the "License"); you may not use this file except in compliance with
++# the License.  You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++set -ex
++
++. `dirname $0`/bigtop.bom
++
++# 编译redis
++make
+\ No newline at end of file
+Index: bigtop-packages/src/common/redis/install_redis.sh
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bigtop-packages/src/common/redis/install_redis.sh b/bigtop-packages/src/common/redis/install_redis.sh
+new file mode 100644
+--- /dev/null	(date 1724164682807)
++++ b/bigtop-packages/src/common/redis/install_redis.sh	(date 1724164682807)
+@@ -0,0 +1,165 @@
++#!/bin/bash
++
++# Licensed to the Apache Software Foundation (ASF) under one or more
++# contributor license agreements.  See the NOTICE file distributed with
++# this work for additional information regarding copyright ownership.
++# The ASF licenses this file to You under the Apache License, Version 2.0
++# (the "License"); you may not use this file except in compliance with
++# the License.  You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++set -ex
++
++usage() {
++  echo "
++usage: $0 <options>
++  Required not-so-options:
++     --build-dir=DIR             path to sqoopdist.dir
++     --prefix=PREFIX             path to install into
++     --extra-dir=DIR             path to Bigtop distribution files
++
++  Optional options:
++     --doc-dir=DIR               path to install docs into [/usr/share/doc/sqoop]
++     --lib-dir=DIR               path to install sqoop home [/usr/lib/sqoop]
++     --installed-lib-dir=DIR     path where lib-dir will end up on target system
++     --bin-dir=DIR               path to install bins [/usr/bin]
++     --conf-dir=DIR              path to configuration files provided by the package [/etc/sqoop/conf.dist]
++     --examples-dir=DIR          path to install examples [doc-dir/examples]
++     ... [ see source for more similar options ]
++  "
++  exit 1
++}
++
++OPTS=$(getopt \
++  -n $0 \
++  -o '' \
++  -l 'bin-dir:' \
++  -l 'build-dir:' \
++  -l 'conf-dir:' \
++  -l 'doc-dir:' \
++  -l 'etc-dir:' \
++  -l 'lib-dir:' \
++  -l 'man-dir:' \
++  -l 'var-dir:' \
++  -l 'prefix:' \
++  -l 'tar-name:' -- "$@")
++
++if [ $? != 0 ]; then
++  usage
++fi
++
++eval set -- "$OPTS"
++set -ex
++while true; do
++  case "$1" in
++  --bin-dir)
++    BIN_DIR=$2
++    shift 2
++    ;;
++  --build-dir)
++    BUILD_DIR=$2
++    shift 2
++    ;;
++  --conf-dir)
++    CONF_DIR=$2
++    shift 2
++    ;;
++  --doc-dir)
++    DOC_DIR=$2
++    shift 2
++    ;;
++  --etc-dir)
++    ETC_DIR=$2
++    shift 2
++    ;;
++  --lib-dir)
++    LIB_DIR=$2
++    shift 2
++    ;;
++  --man-dir)
++    MAN_DIR=$2
++    shift 2
++    ;;
++  --var-dir)
++    VAR_DIR=$2
++    shift 2
++    ;;
++  --prefix)
++    PREFIX=$2
++    shift 2
++    ;;
++  --tar-name)
++    TAR_NAME=$2
++    shift 2
++    ;;
++  --)
++    shift
++    break
++    ;;
++  *)
++    echo "Unknown option: $1"
++    usage
++    exit 1
++    ;;
++  esac
++done
++
++for var in PREFIX BUILD_DIR; do
++  if [ -z "$(eval "echo \$$var")" ]; then
++    echo Missing param: $var
++    usage
++  fi
++done
++
++BIN_DIR=${BIN_DIR:-/usr/lib/redis/src}
++DOC_DIR=${DOC_DIR:-/usr/share/doc/redis}
++ETC_DIR=${ETC_DIR:-/etc/redis}
++LIB_DIR=${LIB_DIR:-/usr/lib/redis}
++MAN_DIR=${MAN_DIR:-/usr/share/man/man1}
++
++# 到服务即可 无前缀
++NP_LOG_DIR=/var/log/redis
++
++# 到服务即可 无前缀
++NP_CONF_DIR=/etc/redis
++
++REDIS_CONF_DIR=${ETC_DIR}/conf.empty
++
++
++
++
++#
++## 日志 无前缀
++install -d -m 0755 ${PREFIX}${NP_LOG_DIR}
++install -d -m 0755 ${PREFIX}${NP_CONF_DIR}
++install -d -m 0755 ${PREFIX}${REDIS_CONF_DIR}
++install -d -m 0755 ${PREFIX}${BIN_DIR}
++install -d -m 0755 ${PREFIX}${DOC_DIR}
++install -d -m 0755 ${PREFIX}${ETC_DIR}
++install -d -m 0755 ${PREFIX}${LIB_DIR}
++install -d -m 0755 ${PREFIX}${MAN_DIR}
++install -d -m 0755 ${PREFIX}${VAR_DIR}
++install -d -m 0755 ${PREFIX}${CONF_DIR}
++
++
++# 二进制 文件复制到 buildroot 目录
++
++shopt -s dotglob
++cp -rv ${BUILD_DIR}/${TAR_NAME}/* ${PREFIX}${LIB_DIR}
++mv ${PREFIX}${LIB_DIR}/*.conf ${PREFIX}${REDIS_CONF_DIR}
++chmod -R 755 ${PREFIX}/${LIB_DIR}
++
++# 去掉 conf目录
++rm -rf ${PREFIX}${LIB_DIR}/*.conf
++shopt -u dotglob
++# etc内容反挂他源目录
++ln -s ${NP_CONF_DIR}/sentinel.conf ${PREFIX}${LIB_DIR}
++ln -s ${NP_CONF_DIR}/redis.conf ${PREFIX}${LIB_DIR}
++

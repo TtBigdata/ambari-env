@@ -30,6 +30,8 @@ NGINX_BIN="/usr/sbin/nginx"
 HOSTNAMES=()
 IPS=()
 
+mkdir -p "$NGINX_REPO_DIR"
+
 # 读取文件内容并分别存储主机名和IP地址
 read_file() {
     if [[ -f "$FILE_PATH" ]]; then

@@ -155,7 +155,7 @@ setup_ambari_server() {
     \"Enter choice (1):\" {
       send \"2\r\"
       expect \"Path to JAVA_HOME:\"
-      send \"$env(JAVA_HOME)\r\"
+      send \"$::env(JAVA_HOME)\r\"
     }
     \"Do you want to change\" {
       send \"n\r\"

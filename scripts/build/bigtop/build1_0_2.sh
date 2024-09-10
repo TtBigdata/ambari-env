@@ -16,7 +16,7 @@
 #
 # Author: JaneTTR
 
-set -e
+set -ex
 
 echo "############## BUILD BIGTOP_1_0_2 start #############"
 
@@ -33,13 +33,12 @@ PROJECT_PATH="/opt/modules/bigtop"
 
 # 定义一个包含源文件和目标路径的数组
 extract_files=(
-  #"/scripts/build/bigtop/patch1_0_1/source/package-sqoop.tar.gz:$PROJECT_PATH"
-  #"/scripts/build/bigtop/patch1_0_1/source/package-ranger.tar.gz:$PROJECT_PATH"
 )
 #清理原来的文件内容
-rm -rf "${PROJECT_PATH}/bigtop-packages/src/common/redis" "${PROJECT_PATH}/bigtop-packages/src/rpm/redis"
+#rm -rf "${PROJECT_PATH}/bigtop-packages/src/common/redis" "${PROJECT_PATH}/bigtop-packages/src/rpm/redis"
 # 清理bigtop-select 因为融合了新组件
 rm -rf "${PROJECT_PATH}/build/redis"  "${PROJECT_PATH}/output/redis"
+rm -rf "${PROJECT_PATH}/build/bigtop-select"  "${PROJECT_PATH}/output/bigtop-select"
 
 # 定义一个函数来解压 .tar.gz 文件
 extract_file() {
@@ -68,6 +67,7 @@ done
 # 定义一个包含所有补丁文件路径的数组
 patch_files=(
   "/scripts/build/bigtop/patch1_0_2/patch0-BOM-COMPONENT-ADD.diff"
+  "/scripts/build/bigtop/patch1_0_2/patch1-BIGTOP-SELECT-ADD.diff"
 )
 RPM_PACKAGE="/data/rpm-package/bigtop"
 
@@ -76,17 +76,26 @@ mkdir -p "$RPM_PACKAGE"
 # 定义一个函数来应用补丁
 apply_patch() {
   local patch_file=$1
+  echo "正在处理补丁文件：$patch_file"
+
+  # 检查是否已经应用补丁，避免反转提示
   if patch -p1 --dry-run -R -d "$PROJECT_PATH" <"$patch_file" >/dev/null 2>&1; then
     echo "补丁：$patch_file 已经应用，跳过"
   else
-    if patch -p1 --fuzz=0 --verbose -d "$PROJECT_PATH" <"$patch_file"; then
+    # 使用 --forward 确保补丁不会被反转
+    if patch -p1 --fuzz=0 --no-backup-if-mismatch --forward -d "$PROJECT_PATH" <"$patch_file"; then
       echo "补丁：$patch_file 已经成功执行"
     else
-      echo "补丁：$patch_file 执行失败"
-      exit 1
+      # 检查是否是新增hunk（文件不存在的情况）
+      if grep -q "can't find file" <(patch -p1 --dry-run -d "$PROJECT_PATH" <"$patch_file" 2>&1); then
+        echo "补丁：$patch_file 是新增文件，跳过"
+      else
+        echo "补丁：$patch_file 执行失败"
+      fi
     fi
   fi
 }
+
 
 # 遍历数组并应用每个补丁文件
 for patch_file in "${patch_files[@]}"; do
@@ -101,8 +110,6 @@ CHILD_PATH="$PROJECT_PATH/bigtop-packages/src/common"
 
 # 定义一个包含源文件和目标路径的数组
 copy_files=(
-  #"/scripts/build/bigtop/patch1_0_1/child_patch/patch3-SQOOP-COMPILE-FAST.diff:$CHILD_PATH/sqoop"
- # "/scripts/build/bigtop/patch1_0_1/child_patch/patch5-RANGER-FIXED-BUGS.diff:$CHILD_PATH/ranger"
 )
 
 # 定义一个函数来复制文件
@@ -134,12 +141,13 @@ source /opt/rh/devtoolset-7/enable
 cd "$PROJECT_PATH"
 gradle \
   redis-rpm \
+  bigtop-select-rpm \
   -PparentDir=/usr/bigtop \
   -Dbuildwithdeps=true \
   -PpkgSuffix -d
 
 # 定义要处理的目录
-directories=("redis")
+directories=("redis" "bigtop-select")
 
 # 遍历每个指定的目录
 for dir in "${directories[@]}"; do

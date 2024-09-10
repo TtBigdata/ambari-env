@@ -1,0 +1,22 @@
+Subject: [PATCH] feature: bigtop-select 增加redis
+---
+Index: bigtop-packages/src/common/bigtop-select/distro-select
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bigtop-packages/src/common/bigtop-select/distro-select b/bigtop-packages/src/common/bigtop-select/distro-select
+--- a/bigtop-packages/src/common/bigtop-select/distro-select	(revision 6ac8ad8bd69cb5827741220f56936dbdc02c137a)
++++ b/bigtop-packages/src/common/bigtop-select/distro-select	(date 1725723235484)
+@@ -89,7 +89,10 @@
+     'tez-client': 'tez',
+     'zeppelin-server': 'zeppelin',
+     'zookeeper-client': 'zookeeper',
+-    'zookeeper-server': 'zookeeper'
++    'zookeeper-server': 'zookeeper',
++    'redis-master': 'redis',
++    'redis-slave': 'redis',
++    'redis-client': 'redis',
+ }
+
+ # Define the aliases and the list of leaves they correspond to

@@ -116,26 +116,26 @@ done
 source /opt/rh/devtoolset-7/enable
 
 cd "$PROJECT_PATH"
-
-gradle \
-  bigtop-groovy-rpm \
-  bigtop-jsvc-rpm \
-  bigtop-select-rpm \
-  bigtop-utils-rpm \
-  zookeeper-rpm \
-  hadoop-rpm \
-  flink-rpm \
-  hbase-rpm \
-  hive-rpm \
-  kafka-rpm \
-  spark-rpm \
-  solr-rpm \
-  tez-rpm \
-  zeppelin-rpm \
-  livy-rpm \
-  -PparentDir=/usr/bigtop \
-  -Dbuildwithdeps=true \
-  -PpkgSuffix
+#
+#gradle \
+#  bigtop-groovy-rpm \
+#  bigtop-jsvc-rpm \
+#  bigtop-select-rpm \
+#  bigtop-utils-rpm \
+#  zookeeper-rpm \
+#  hadoop-rpm \
+#  flink-rpm \
+#  hbase-rpm \
+#  hive-rpm \
+#  kafka-rpm \
+#  spark-rpm \
+#  solr-rpm \
+#  tez-rpm \
+#  zeppelin-rpm \
+#  livy-rpm \
+#  -PparentDir=/usr/bigtop \
+#  -Dbuildwithdeps=true \
+#  -PpkgSuffix
 
 
 # 遍历 output 目录下的每个子目录
@@ -148,7 +148,7 @@ for dir in "$PROJECT_PATH"/output/*; do
         mkdir -p "$RPM_PACKAGE/$component"
 
         # 查找并复制文件
-        find "$dir" -iname '*.rpm' -not -iname '*.src.rpm' -exec cp -rv {} "$RPM_PACKAGE/$component" \;
+        #find "$dir" -iname '*.rpm' -not -iname '*.src.rpm' -exec cp -rv {} "$RPM_PACKAGE/$component" \;
     fi
 done
 

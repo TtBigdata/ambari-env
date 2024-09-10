@@ -1,0 +1,1144 @@
+Subject: [PATCH] feature: 集成redis 能力
+---
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/__init__.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/__init__.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/__init__.py
+new file mode 100644
+--- /dev/null	(date 1719626239000)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/__init__.py	(date 1719626239000)
+@@ -0,0 +1,19 @@
++#!/usr/bin/env python
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/service_check.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/service_check.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/service_check.py
+new file mode 100644
+--- /dev/null	(date 1725849700106)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/service_check.py	(date 1725849700106)
+@@ -0,0 +1,64 @@
++# coding=utf-8
++import time
++
++from resource_management.core.exceptions import Fail
++from resource_management.core.logger import Logger
++from resource_management.core.resources.system import Execute
++from resource_management.libraries.functions.format import format
++from resource_management.libraries.script.script import Script
++
++
++class RedisServiceCheck(Script):
++
++    def service_check(self, env):
++        """
++        检查 Redis 集群的健康状态，支持密码校验。
++        """
++        import params
++        env.set_params(params)
++
++        redis_port = params.redis_port
++        client_bin = params.client_bin  # 获取 redis-cli 所在目录路径
++        redis_password = params.redis_password  # 获取 Redis 密码
++        retries = 5
++        retry_delay = 5  # 每次重试之间的等待时间
++
++        # 检查 Redis 集群的健康状态
++        self.check_redis_cluster(redis_port, client_bin, redis_password, retries, retry_delay)
++
++    def check_redis_cluster(self, redis_port, client_bin, redis_password, retries, retry_delay):
++        """
++        使用命令检查 Redis 集群的健康状态，并加入重试机制。
++        使用 cluster nodes 和 cluster info 命令。
++        """
++        Logger.info("Checking Redis cluster health...")
++
++        # 设置密码选项
++        if redis_password:
++            password_option = format("-a {redis_password}")
++        else:
++            password_option = ""
++
++        for attempt in range(retries):
++            try:
++                # 使用 redis-cli 的 cluster nodes 命令检查集群状态
++                Execute(format("{client_bin}/redis-cli -p {redis_port} {password_option} cluster nodes"), user="redis")
++                Logger.info("Redis cluster nodes check passed.")
++
++                # 使用 cluster info 获取集群的整体状态
++                Execute(format("{client_bin}/redis-cli -p {redis_port} {password_option} cluster info"), user="redis")
++                Logger.info("Redis cluster info check passed.")
++
++                return  # 检查通过，退出方法
++            except Exception as e:
++                Logger.warning("Redis cluster health check failed (attempt {0}): {1}".format(attempt + 1, str(e)))
++                if attempt < retries - 1:
++                    Logger.info("Retrying in {0} seconds...".format(retry_delay))
++                    time.sleep(retry_delay)
++                else:
++                    Logger.error("Failed to pass Redis cluster health check after {0} attempts.".format(retries))
++                    raise Fail("Redis cluster health check failed.")
++
++
++if __name__ == "__main__":
++    RedisServiceCheck().execute()
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/templates/redis-env.sh.j2
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/templates/redis-env.sh.j2 b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/templates/redis-env.sh.j2
+new file mode 100644
+--- /dev/null	(date 1725702659289)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/templates/redis-env.sh.j2	(date 1725702659289)
+@@ -0,0 +1,21 @@
++# redis-env.sh.j2
++# This is the template for Redis environment variables (redis-env.sh).
++# It sets up paths and configurations necessary to run Redis.
++
++# Set Java Home
++export JAVA_HOME={{java64_home}}
++
++# Set Redis Home
++export REDIS_HOME=/usr/local/redis
++
++# Set Redis configuration file location
++export REDIS_CONF=/etc/redis/redis.conf
++
++# Set Redis port
++export REDIS_PORT={{redis_port}}
++
++# Set log directory for Redis
++export REDIS_LOG_DIR={{redis_log_dir}}
++
++# Set data directory for Redis
++export REDIS_DATA_DIR={{redis_data_dir}}
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/params_linux.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/params_linux.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/params_linux.py
+new file mode 100644
+--- /dev/null	(date 1725859411121)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/params_linux.py	(date 1725859411121)
+@@ -0,0 +1,69 @@
++# coding=utf-8
++# params.py retrieves all necessary configurations from Ambari for Redis service.
++from resource_management.libraries.functions import format
++from resource_management.libraries.script.script import Script
++
++SERVER_ROLE_DIRECTORY_MAP = {
++    'REDIS_MASTER': 'redis-master',
++    'REDIS_SLAVE': 'redis-slave',
++    'REDIS_CLIENT': 'redis-client'
++}
++
++master_component_directory = Script.get_component_from_role(SERVER_ROLE_DIRECTORY_MAP, "REDIS_MASTER")
++slave_component_directory = Script.get_component_from_role(SERVER_ROLE_DIRECTORY_MAP, "REDIS_SLAVE")
++client_component_directory = Script.get_component_from_role(SERVER_ROLE_DIRECTORY_MAP, "REDIS_CLIENT")
++
++config = Script.get_config()
++stack_root = Script.get_stack_root()
++
++# parent
++redis_conf_parent = '/etc/redis'
++
++# bin dir
++master_bin = format("{stack_root}/current/{master_component_directory}/src")
++slave_bin = format("{stack_root}/current/{slave_component_directory}/src")
++client_bin = format("{stack_root}/current/{client_component_directory}/src")
++
++# Get Redis Master and Slave host lists from clusterHostInfo
++redis_master_hosts = config['clusterHostInfo']['redis_master_hosts']
++redis_slave_hosts = config['clusterHostInfo']['redis_slave_hosts']
++
++# 从 redis-env.xml 中获取 Redis 端口、密码、日志和数据目录等参数
++redis_user = config['configurations']['redis-env']['redis_user']
++redis_port = config['configurations']['redis-env']['redis_port']
++redis_password = config['configurations']['redis-env']['redis_password']
++redis_log_dir = config['configurations']['redis-env']['redis_log_dir']
++redis_data_dir = config['configurations']['redis-env']['redis_data_dir']
++redis_pid_dir = config['configurations']['redis-env']['redis_pid_dir']
++daemonize = config['configurations']['redis-env']['daemonize']
++
++# 从 redis-site.xml 中获取 Redis 持久化和其他配置参数
++appendonly = config['configurations']['redis-site']['appendonly']
++appendfilename = config['configurations']['redis-site']['appendfilename']
++appendfsync = config['configurations']['redis-site']['appendfsync']
++save_intervals = config['configurations']['redis-site']['save_intervals']
++dbfilename = config['configurations']['redis-site']['dbfilename']
++maxmemory = config['configurations']['redis-site']['maxmemory']
++maxmemory_policy = config['configurations']['redis-site']['maxmemory_policy']
++maxclients = config['configurations']['redis-site']['maxclients']
++timeout = config['configurations']['redis-site']['timeout']
++databases = config['configurations']['redis-site']['databases']
++tcp_keepalive = config['configurations']['redis-site']['tcp_keepalive']
++protected_mode = config['configurations']['redis-site']['protected_mode']
++cluster_enabled = config['configurations']['redis-site']['cluster_enabled']
++cluster_config_file = config['configurations']['redis-site']['cluster_config_file']
++
++# Retrieve user group from cluster-env.xml
++user_group = config['configurations']['cluster-env']['user_group']
++
++# Get the current hostname to determine role (master or slave)
++hostname = config['agentLevelParams']['hostname']
++
++# Determine whether the current host is a master or slave
++is_master = hostname in redis_master_hosts
++is_slave = hostname in redis_slave_hosts
++
++# Log and data directories (from redis-env.xml)
++redis_log_file = format("{redis_log_dir}/redis.log")
++master_redis_pid_file = format("{redis_pid_dir}/redis_master.pid")
++slave_redis_pid_file = format("{redis_pid_dir}/redis_slave.pid")
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json
+--- a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json	(revision 13e603e08d3330905b5676ff733e1985be9aba7f)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/properties/stack_packages.json	(date 1725705414365)
+@@ -474,6 +474,48 @@
+             "ranger-kms"
+           ]
+         }
++      },
++      "REDIS": {
++        "REDIS_MASTER": {
++          "STACK-SELECT-PACKAGE": "redis-master",
++          "INSTALL": [
++            "redis-master",
++            "redis-client"
++          ],
++          "PATCH": [
++            "redis-master"
++          ],
++          "STANDARD": [
++            "redis-master",
++            "redis-client"
++          ]
++        },
++        "REDIS_SLAVE": {
++          "STACK-SELECT-PACKAGE": "redis-slave",
++          "INSTALL": [
++            "redis-slave",
++            "redis-client"
++          ],
++          "PATCH": [
++            "redis-slave"
++          ],
++          "STANDARD": [
++            "redis-slave",
++            "redis-client"
++          ]
++        },
++        "REDIS_CLIENT": {
++          "STACK-SELECT-PACKAGE": "redis-client",
++          "INSTALL": [
++            "redis-client"
++          ],
++          "PATCH": [
++            "redis-client"
++          ],
++          "STANDARD": [
++            "redis-client"
++          ]
++        }
+       }
+     },
+     "conf-select": {
+@@ -602,6 +644,13 @@
+           "current_dir": "{0}/current/ranger-usersync/conf",
+           "component": "ranger-usersync"
+         }
++      ],
++      "redis": [
++        {
++          "conf_dir": "/etc/redis/client/conf",
++          "current_dir": "{0}/current/redis-client/conf",
++          "component": "redis-client"
++        }
+       ]
+     },
+     "conf-select-patching": {
+@@ -676,6 +725,13 @@
+         "packages": [
+           "ranger-kms"
+         ]
++      },
++      "REDIS": {
++        "packages": [
++          "redis-client",
++          "redis-master",
++          "redis-slave"
++        ]
+       }
+     },
+     "upgrade-dependencies": {
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_client.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_client.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_client.py
+new file mode 100644
+--- /dev/null	(date 1725849036493)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_client.py	(date 1725849036493)
+@@ -0,0 +1,43 @@
++# coding=utf-8
++# redis_client.py manages the Redis Client component in Ambari.
++
++from resource_management.core.logger import Logger
++from resource_management.libraries.script.script import Script
++
++
++class RedisClient(Script):
++    def install(self, env):
++        """
++        安装 Redis 客户端包
++        """
++        Logger.info("Installing Redis Client...")
++        self.install_packages(env)
++        Logger.info("Redis Client installation completed.")
++
++    def configure(self, env):
++        """
++        Redis 客户端不需要特定的配置。
++        """
++        Logger.info("Redis Client does not require configuration.")
++    #
++    # def start(self, env):
++    #     """
++    #     Redis 客户端不需要启动命令。
++    #     """
++    #     Logger.info("Redis Client does not have a start command, as it is only a client.")
++    #
++    # def stop(self, env):
++    #     """
++    #     Redis 客户端不需要停止命令。
++    #     """
++    #     Logger.info("Redis Client does not have a stop command, as it is only a client.")
++    #
++    # def status(self, env):
++    #     """
++    #     Redis 客户端没有状态检查。
++    #     """
++    #     Logger.info("Redis Client does not have a status check, as it is only a client.")
++
++
++if __name__ == "__main__":
++    RedisClient().execute()
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/configuration/redis-site.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/configuration/redis-site.xml b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/configuration/redis-site.xml
+new file mode 100644
+--- /dev/null	(date 1725780290652)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/configuration/redis-site.xml	(date 1725780290652)
+@@ -0,0 +1,58 @@
++<configuration>
++    <property>
++        <name>appendonly</name>
++        <value>yes</value>
++    </property>
++    <property>
++        <name>appendfilename</name>
++        <value>appendonly.aof</value>
++    </property>
++    <property>
++        <name>appendfsync</name>
++        <value>everysec</value>
++    </property>
++    <property>
++        <name>save_intervals</name>
++        <value>900 1 300 10 60 10000</value>
++    </property>
++    <property>
++        <name>dbfilename</name>
++        <value>dump.rdb</value>
++    </property>
++    <property>
++        <name>maxmemory</name>
++        <value>2gb</value>
++    </property>
++    <property>
++        <name>maxmemory_policy</name>
++        <value>allkeys-lru</value>
++    </property>
++    <property>
++        <name>maxclients</name>
++        <value>10000</value>
++    </property>
++    <property>
++        <name>timeout</name>
++        <value>300</value>
++    </property>
++    <property>
++        <name>databases</name>
++        <value>16</value>
++    </property>
++    <property>
++        <name>tcp_keepalive</name>
++        <value>60</value>
++    </property>
++    <property>
++        <name>protected_mode</name>
++        <value>no</value>
++    </property>
++    <property>
++        <name>cluster_enabled</name>
++        <value>yes</value>
++    </property>
++    <property>
++        <name>cluster_config_file</name>
++        <value>/etc/redis/cluster.conf</value>
++    </property>
++</configuration>
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/metainfo.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/metainfo.xml b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/metainfo.xml
+new file mode 100644
+--- /dev/null	(date 1725841888219)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/metainfo.xml	(date 1725841888219)
+@@ -0,0 +1,125 @@
++<?xml version="1.0"?>
++<!--
++   Licensed to the Apache Software Foundation (ASF) under one or more
++   contributor license agreements.  See the NOTICE file distributed with
++   this work for additional information regarding copyright ownership.
++   The ASF licenses this file to You under the Apache License, Version 2.0
++   (the "License"); you may not use this file except in compliance with
++   the License.  You may obtain a copy of the License at
++
++       http://www.apache.org/licenses/LICENSE-2.0
++
++   Unless required by applicable law or agreed to in writing, software
++   distributed under the License is distributed on an "AS IS" BASIS,
++   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++   See the License for the specific language governing permissions and
++   limitations under the License.
++-->
++<metainfo>
++    <schemaVersion>2.0</schemaVersion>
++    <services>
++        <service>
++            <!-- Redis 集群服务的基本信息 -->
++            <name>REDIS</name>
++            <displayName>Redis</displayName>
++            <comment>
++                Component Redis Power By JaneTTR . mail: 3832514048@qq.com ,git: https://gitee.com/tt-bigdata/ambari-env
++            </comment>
++            <version>7.4.0</version>
++
++            <!-- Redis 集群组件定义 -->
++            <components>
++                <!-- Redis 主节点组件 -->
++                <component>
++                    <name>REDIS_MASTER</name>
++                    <displayName>Redis Master</displayName>
++                    <category>MASTER</category>
++                    <cardinality>3+</cardinality> <!-- Redis 集群至少需要 3 个主节点 -->
++                    <versionAdvertised>true</versionAdvertised>
++                    <commandScript>
++                        <script>scripts/redis_master.py</script> <!-- Python 脚本 -->
++                        <scriptType>PYTHON</scriptType>
++                    </commandScript>
++                    <configFiles>
++                        <configFile>
++                            <type>env</type>
++                            <fileName>redis-site.xml</fileName>
++                            <dictionaryName>redis-site</dictionaryName>
++                        </configFile>
++                        <configFile>
++                            <type>env</type>
++                            <fileName>redis-env.sh</fileName>
++                            <dictionaryName>redis-env</dictionaryName>
++                        </configFile>
++                    </configFiles>
++                </component>
++
++                <!-- Redis 从节点组件 -->
++                <component>
++                    <name>REDIS_SLAVE</name>
++                    <displayName>Redis Slave</displayName>
++                    <category>SLAVE</category>
++                    <cardinality>3+</cardinality> <!-- 从节点可以是 0 或多个 -->
++                    <versionAdvertised>true</versionAdvertised>
++                    <commandScript>
++                        <script>scripts/redis_slave.py</script> <!-- Python 脚本 -->
++                        <scriptType>PYTHON</scriptType>
++                    </commandScript>
++                    <configFiles>
++                        <configFile>
++                            <type>env</type>
++                            <fileName>redis-site.xml</fileName>
++                            <dictionaryName>redis-site</dictionaryName>
++                        </configFile>
++                        <configFile>
++                            <type>env</type>
++                            <fileName>redis-env.sh</fileName>
++                            <dictionaryName>redis-env</dictionaryName>
++                        </configFile>
++                    </configFiles>
++                </component>
++
++                <!-- Redis 客户端组件 -->
++                <component>
++                    <name>REDIS_CLIENT</name>
++                    <displayName>Redis Client</displayName>
++                    <category>CLIENT</category>
++                    <cardinality>0+</cardinality> <!-- 客户端是可选的，可以部署多个 -->
++                    <versionAdvertised>true</versionAdvertised>
++                    <commandScript>
++                        <script>scripts/redis_client.py</script> <!-- Python 脚本 -->
++                        <scriptType>PYTHON</scriptType>
++                    </commandScript>
++                </component>
++            </components>
++
++            <!-- 操作系统相关 -->
++            <osSpecifics>
++                <osSpecific>
++                    <osFamily>any</osFamily> <!-- 支持任何操作系统 -->
++                    <packages>
++                        <package>
++                            <name>redis_${stack_version}</name>
++                        </package>
++                    </packages>
++                </osSpecific>
++            </osSpecifics>
++
++            <!-- Redis 服务健康检查 -->
++            <commandScript>
++                <script>scripts/service_check.py</script> <!-- 健康检查 Python 脚本 -->
++                <scriptType>PYTHON</scriptType>
++                <timeout>300</timeout>
++            </commandScript>
++
++            <!-- Redis 服务不依赖其他服务 -->
++            <!-- 如果有其他依赖项，可以在这里定义 -->
++
++            <!-- 配置依赖 -->
++            <configuration-dependencies>
++                <config-type>redis-site</config-type>
++                <config-type>redis-env</config-type>
++            </configuration-dependencies>
++        </service>
++    </services>
++</metainfo>
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_master.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_master.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_master.py
+new file mode 100644
+--- /dev/null	(date 1725861614167)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_master.py	(date 1725861614167)
+@@ -0,0 +1,109 @@
++# coding=utf-8
++import time
++
++from resource_management import Template
++from resource_management.core.logger import Logger
++from resource_management.core.resources.system import Execute, File, Directory
++from resource_management.libraries.functions.check_process_status import check_process_status
++from resource_management.libraries.functions.format import format
++from resource_management.libraries.script.script import Script
++
++
++class RedisMaster(Script):
++    def install(self, env):
++        # 安装 Redis 包
++        self.install_packages(env)
++        self.configure(env)
++
++    def configure(self, env):
++        import params
++        env.set_params(params)
++
++        # 创建日志、数据和 PID 目录，并设置适当的权限
++        Directory([params.redis_log_dir, params.redis_data_dir, params.redis_pid_dir],
++                  owner=params.redis_user,
++                  group=params.user_group,
++                  mode=0755,
++                  create_parents=True)
++
++        # 生成 redis.conf 配置文件
++        File("/etc/redis/redis.conf",
++             content=Template("redis.conf.j2"),
++             owner=params.redis_user,
++             group=params.user_group,
++             mode=0644)
++
++    def start(self, env):
++        import params
++        self.configure(env)
++
++        Logger.info(format("Starting Redis Master on port {redis_port}"))
++
++        # 启动 Redis Master，不处理集群逻辑
++        Execute(format(
++            "{client_bin}/redis-server /etc/redis/redis.conf --cluster-config-file /etc/redis/cluster_master.conf --pidfile {master_redis_pid_file}"),
++            user=params.redis_user)
++
++    def stop(self, env):
++        import params
++        self.configure(env)
++
++        Logger.info("Stopping Redis Master using its PID file...")
++
++        # 使用 PID 文件来停止 Redis Master 进程
++        try:
++            Execute(format("kill -9 `cat {master_redis_pid_file}`"),
++                    user=params.redis_user)
++            Logger.info("Redis Master stopped successfully.")
++        except:
++            Logger.warning("Failed to stop Redis Master using the PID file.")
++
++        # 确保 Redis Master 完全停止
++        self.ensure_stopped(env)
++
++    def ensure_stopped(self, env):
++        """
++        确保 Redis Master 服务已完全停止。如果 Redis 进程还在运行，等待它完全关闭。
++        """
++        Logger.info("Checking if Redis Master is fully stopped...")
++
++        retries = 5
++        retry_delay = 2  # 每隔2秒检查一次
++
++        for attempt in range(retries):
++            try:
++                check_process_status("{master_redis_pid_file}")
++                Logger.info("Redis Master is still running (attempt {}/{}). Waiting...".format(attempt + 1, retries))
++                time.sleep(retry_delay)
++            except:
++                Logger.info("Redis Master has been successfully stopped.")
++                return
++
++        Logger.error("Redis Master failed to stop after retries.")
++        raise Exception("Redis Master process could not be stopped.")
++
++    def restart(self, env):
++        """
++        重新启动 Redis Master 服务。先调用 stop 方法停止服务，然后调用 start 方法重新启动服务。
++        增加等待时间和进程状态检查，确保服务能够正确停止和重启。
++        """
++        Logger.info("Restarting Redis Master...")
++
++        # 先停止服务
++        self.stop(env)
++
++        # 等待几秒钟，确保 Redis 进程已经彻底关闭
++        time.sleep(5)
++
++        # 再启动服务
++        self.start(env)
++
++        Logger.info("Redis Master restarted successfully.")
++
++    def status(self, env):
++        import params
++        check_process_status(params.master_redis_pid_file)
++
++
++if __name__ == "__main__":
++    RedisMaster().execute()
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_slave.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_slave.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_slave.py
+new file mode 100644
+--- /dev/null	(date 1725931862097)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/redis_slave.py	(date 1725931862097)
+@@ -0,0 +1,290 @@
++# coding=utf-8
++import socket
++import subprocess
++import time
++
++from resource_management import Template
++from resource_management.core import shell
++from resource_management.core.logger import Logger
++from resource_management.core.resources.system import Execute, File, Directory
++from resource_management.libraries.functions.check_process_status import check_process_status
++from resource_management.libraries.functions.format import format
++from resource_management.libraries.script.script import Script
++
++
++class RedisSlave(Script):
++    def install(self, env):
++        # 安装 Redis 包
++        self.install_packages(env)
++        self.configure(env)
++
++    def configure(self, env):
++        import params
++        env.set_params(params)
++
++        # 创建日志、数据和 PID 目录，并设置适当的权限
++        Directory([params.redis_log_dir, params.redis_data_dir, params.redis_pid_dir],
++                  owner=params.redis_user,
++                  group=params.user_group,
++                  mode=0755,
++                  create_parents=True)
++
++        # 生成 redis.conf 配置文件
++        File("/etc/redis/redis.conf",
++             content=Template("redis.conf.j2"),
++             owner=params.redis_user,
++             group=params.user_group,
++             mode=0644)
++
++    def start(self, env):
++        import params
++        self.configure(env)
++
++        slave_port = int(params.redis_port) + 1
++        Logger.info(format("Starting Redis Slave on port {slave_port}"))
++
++        # 启动 Redis Slave，并显式指定 pidfile
++        Execute(format(
++            "{client_bin}/redis-server /etc/redis/redis.conf --port {slave_port} --cluster-config-file /etc/redis/cluster_slave.conf --pidfile {slave_redis_pid_file}"),
++            user=params.redis_user)
++
++        # 检查并处理集群逻辑，包括初始化集群和扩展
++        self.initialize_or_expand_cluster(params)
++
++    def stop(self, env):
++        import params
++        self.configure(env)
++
++        Logger.info("Stopping Redis Slave using its PID file...")
++
++        # 使用 PID 文件来停止 Redis Slave 进程，而不是直接通过 redis-cli shutdown
++        try:
++            Execute(format("kill -9 `cat {slave_redis_pid_file}`"),
++                    user=params.redis_user)
++            Logger.info("Redis Slave stopped successfully.")
++        except:
++            Logger.warning("Failed to stop Redis Slave using the PID file.")
++
++        # 确保 Redis Slave 完全停止
++        self.ensure_stopped(env)
++
++    def ensure_stopped(self, env):
++        """
++        确保 Redis Slave 服务已完全停止。如果 Redis 进程还在运行，等待它完全关闭。
++        """
++        Logger.info("Checking if Redis Slave is fully stopped...")
++        retries = 5
++        retry_delay = 2  # 每隔2秒检查一次
++
++        for attempt in range(retries):
++            try:
++                check_process_status("{slave_redis_pid_file}")
++                Logger.info("Redis Slave is still running (attempt {}/{}). Waiting...".format(attempt + 1, retries))
++                time.sleep(retry_delay)
++            except:
++                Logger.info("Redis Slave has been successfully stopped.")
++                return
++
++        Logger.error("Redis Slave failed to stop after retries.")
++        raise Exception("Redis process could not be stopped.")
++
++    def restart(self, env):
++        """
++        重新启动 Redis Slave 服务。先调用 stop 方法停止服务，然后调用 start 方法重新启动服务。
++        增加等待时间和进程状态检查，确保服务能够正确停止和重启。
++        """
++        Logger.info("Restarting Redis Slave...")
++
++        # 先停止服务
++        self.stop(env)
++
++        # 等待几秒钟，确保 Redis 进程已经彻底关闭
++        time.sleep(5)
++
++        # 再启动服务
++        self.start(env)
++
++        Logger.info("Redis Slave restarted successfully.")
++
++    def status(self, env):
++        import params
++        check_process_status(params.slave_redis_pid_file)
++
++    def initialize_or_expand_cluster(self, params):
++        """
++        在 Slave 启动时检查 Master 节点是否已经组成集群，如果没有则进行集群初始化。如果已经有集群，处理扩展。
++        """
++        retries = 5
++        retry_delay = 10  # 秒
++
++        Logger.info("Checking cluster status to determine if initialization or expansion is needed.")
++
++        for attempt in range(retries):
++            code, output = shell.call(
++                format("{client_bin}/redis-cli -p {params.redis_port} -a {redis_password} cluster nodes"),
++                user=params.redis_user)
++
++            # 构建一个新数组，过滤掉包含 "Warning" 的行
++            filtered_output = [line for line in output.splitlines() if "Warning" not in line]
++
++            # 如果集群已经初始化，继续添加从节点
++            if code == 0 and len(filtered_output) > 1:
++                Logger.info("Cluster is already initialized. Proceeding with slave addition.")
++                self.add_slave_to_master(params)
++                return
++
++            # 如果集群只有一个节点，执行集群初始化并将当前节点加入
++            elif len(filtered_output) == 1:
++                Logger.info(
++                    "Cluster is not initialized. Initializing Redis Cluster with master nodes and assigning slots.")
++                self.initialize_cluster_and_assign_slots(params)
++
++                # 初始化集群后，将当前节点也作为集群的一部分加入
++                Logger.info("Adding current node to the newly initialized cluster.")
++                self.add_current_node_to_cluster(params)
++                return
++
++            else:
++                Logger.warning("Cluster is not initialized (attempt {}/{}).".format(attempt + 1, retries))
++                time.sleep(retry_delay)
++
++        Logger.error("Cluster could not be initialized after retries.")
++        raise Exception("Cluster in an inconsistent state.")
++
++    def initialize_cluster_and_assign_slots(self, params):
++        """
++        初始化集群，组建 Master 节点之间的集群，并分配槽位（仅限首次初始化时）。
++        """
++        redis_port = int(params.redis_port) if isinstance(params.redis_port, str) else params.redis_port
++
++        # 使用 Ambari 提供的 format 方法来格式化字符串
++        master_hosts = [format("{host}:{redis_port}", host=host, redis_port=redis_port) for host in
++                        params.redis_master_hosts]
++        master_nodes_str = " ".join(master_hosts)
++
++        Logger.info(format("Initializing Redis Cluster with master nodes: {master_nodes_str}"))
++
++        # 使用 --cluster-replicas 0 来创建只有主节点的集群
++        create_cluster_command = format(
++            "{client_bin}/redis-cli --cluster create {master_nodes_str} --cluster-replicas 0 -a {redis_password} --cluster-yes")
++
++        # 打印生成的集群创建命令
++        Logger.info(format("Generated create_cluster_command: {create_cluster_command}"))
++
++        try:
++            # 使用 subprocess 来执行命令，捕获 stdout 和 stderr
++            process = subprocess.Popen(create_cluster_command, shell=True, stdout=subprocess.PIPE,
++                                       stderr=subprocess.STDOUT)
++            stdout, _ = process.communicate()
++
++            # 过滤掉警告信息，仅保留核心输出
++            filtered_output = [line for line in stdout.decode('utf-8').splitlines() if "Warning" not in line]
++
++            if process.returncode != 0 or not filtered_output:
++                Logger.error("Failed to initialize Redis cluster. Error: {0}".format(filtered_output))
++                raise Exception("Cluster initialization failed")
++
++            Logger.info("Cluster initialized successfully.")
++        except Exception as e:
++            Logger.error("Failed to initialize Redis cluster: {0}".format(str(e)))
++            raise
++
++    def add_slave_to_master(self, params):
++        """
++        将新的 Slave 节点加入到集群，并明确指定它作为某个 Master 节点的从节点，确保反亲和性。
++        之前添加前检查该从节点是否已经是集群的一部分。
++        """
++        slave_port = int(params.redis_port) + 1
++        master_host = self.get_assigned_master(params)  # 获取合适的主节点，确保反亲和性
++
++        # 先检查从节点是否已经在集群中
++        if self.is_slave_already_in_cluster(params, slave_port):
++            Logger.info(
++                format("Redis Slave {params.hostname}:{slave_port} is already part of the cluster, skipping addition."))
++            return
++
++        Logger.info(format("Adding Redis Slave on port {slave_port} to master at {master_host}"))
++
++        # 使用 -a 参数传递密码，明确指定将从节点加入到某个主节点下
++        Execute(format(
++            "{client_bin}/redis-cli --cluster add-node {params.hostname}:{slave_port} {master_host}:{params.redis_port} --cluster-slave -a {redis_password}"),
++            user=params.redis_user)
++
++        Logger.info("Slave node added to the cluster as a replica of master {master_host}. No need to rebalance slots.")
++
++    def add_current_node_to_cluster(self, params):
++        """
++        将当前节点加入到集群中，确保当前节点成为集群的一部分。
++        """
++        slave_port = int(params.redis_port) + 1
++        master_host = self.get_assigned_master(params)  # 获取合适的主节点
++
++        Logger.info(format("Adding current Redis node on port {slave_port} to the newly initialized cluster."))
++
++        Execute(format(
++            "{client_bin}/redis-cli --cluster add-node {params.hostname}:{slave_port} {master_host}:{params.redis_port} --cluster-slave -a {redis_password}"),
++            user=params.redis_user)
++
++        Logger.info("Current node added to the cluster successfully.")
++
++    def is_slave_already_in_cluster(self, params, slave_port):
++        """
++        检查 Redis 节点是否已经是集群的一部分，确保通过 IP 地址而非主机名进行匹配。
++        """
++        Logger.info(format("Checking if Redis Slave {params.hostname}:{slave_port} is already part of the cluster..."))
++
++        # 将主机名解析为 IP 地址
++        slave_ip = self.get_ip_from_hostname(params.hostname)
++
++        if slave_ip is None:
++            Logger.error("Failed to resolve hostname to IP for: {0}".format(params.hostname))
++            return False
++
++        # 使用 redis-cli 查询集群的所有节点
++        code, output = shell.call(
++            format("{client_bin}/redis-cli -p {params.redis_port} -a {redis_password} cluster nodes"),
++            user=params.redis_user)
++
++        if code != 0:
++            Logger.warning("Failed to retrieve cluster nodes information.")
++            return False
++
++        # 检查输出，查看该从节点的 IP 地址是否已经在集群中
++        for line in output.splitlines():
++            if slave_ip in line and str(slave_port) in line:
++                Logger.info("Redis Slave with IP {0} is already in the cluster: {1}".format(slave_ip, line))
++                return True
++
++        return False
++
++    def get_assigned_master(self, params):
++        """
++        动态分配 Master 节点，确保新 Slave 节点配对到正确的 Master 节点，且遵循反亲和性原则。
++        """
++        master_hosts = params.redis_master_hosts
++        Logger.info("Available Master nodes: {0}".format(master_hosts))
++
++        # 获取当前主节点的索引
++        current_slave_index = int(params.redis_port) % len(master_hosts)
++
++        # 计算该从节点应当挂载的主节点
++        assigned_master_index = (current_slave_index + 1) % len(master_hosts)
++        assigned_master = master_hosts[assigned_master_index]
++
++        Logger.info(format("Assigning Slave on port {params.redis_port} to Master {assigned_master}"))
++        return assigned_master
++
++    def get_ip_from_hostname(self, hostname):
++        """
++        使用 socket 库获取主机名对应的 IP 地址
++        """
++        try:
++            ip_address = socket.gethostbyname(hostname)
++            return ip_address
++        except socket.error as e:
++            Logger.error("Failed to resolve hostname {0}: {1}".format(hostname, str(e)))
++            return None
++
++
++if __name__ == "__main__":
++    RedisSlave().execute()
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/params.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/params.py b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/params.py
+new file mode 100644
+--- /dev/null	(date 1725696219391)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/scripts/params.py	(date 1725696219391)
+@@ -0,0 +1,23 @@
++"""
++Licensed to the Apache Software Foundation (ASF) under one
++or more contributor license agreements.  See the NOTICE file
++distributed with this work for additional information
++regarding copyright ownership.  The ASF licenses this file
++to you under the Apache License, Version 2.0 (the
++"License"); you may not use this file except in compliance
++with the License.  You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++
++"""
++from ambari_commons import OSCheck
++from resource_management.libraries.functions.default import default
++from params_linux import *
++
++
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/configuration/redis-env.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/configuration/redis-env.xml b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/configuration/redis-env.xml
+new file mode 100644
+--- /dev/null	(date 1725784378973)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/configuration/redis-env.xml	(date 1725784378973)
+@@ -0,0 +1,30 @@
++<configuration>
++    <property>
++        <name>redis_user</name>
++        <value>redis</value>
++    </property>
++    <property>
++        <name>redis_port</name>
++        <value>6379</value>
++    </property>
++    <property>
++        <name>redis_password</name>
++        <value>redis123</value>
++    </property>
++    <property>
++        <name>redis_log_dir</name>
++        <value>/var/log/redis</value>
++    </property>
++    <property>
++        <name>redis_data_dir</name>
++        <value>/var/lib/redis</value>
++    </property>
++    <property>
++        <name>redis_pid_dir</name>
++        <value>/var/run/redis</value>
++    </property>
++    <property>
++        <name>daemonize</name>
++        <value>yes</value>
++    </property>
++</configuration>
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/role_command_order.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/role_command_order.json b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/role_command_order.json
+new file mode 100644
+--- /dev/null	(date 1725842715183)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/role_command_order.json	(date 1725842715183)
+@@ -0,0 +1,23 @@
++{
++  "general_deps": {
++    "_comment": "Updated dependencies for Redis components in a cluster mode",
++    "REDIS_MASTER-START": [],
++    "REDIS_SLAVE-START": [
++      "REDIS_MASTER-START"
++    ],
++    "REDIS_CLIENT-START": [
++      "REDIS_MASTER-START",
++      "REDIS_SLAVE-START"
++    ],
++    "REDIS_MASTER-STOP": [
++      "REDIS_SLAVE-STOP"
++    ],
++    "REDIS_SLAVE-STOP": [],
++    "REDIS_CLIENT-STOP": [],
++    "REDIS_SERVICE_CHECK-SERVICE_CHECK": [
++      "REDIS_MASTER-START",
++      "REDIS_SLAVE-START",
++      "REDIS_CLIENT-START"
++    ]
++  }
++}
+Index: ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/templates/redis.conf.j2
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/templates/redis.conf.j2 b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/templates/redis.conf.j2
+new file mode 100644
+--- /dev/null	(date 1725780209414)
++++ b/ambari-server/src/main/resources/stacks/BIGTOP/3.2.0/services/REDIS/package/templates/redis.conf.j2	(date 1725780209414)
+@@ -0,0 +1,53 @@
++# Redis server configuration template
++
++# Redis port configuration
++port {{ redis_port }}
++
++# Cluster mode enabled
++cluster-enabled {{ cluster_enabled }}
++
++# Cluster configuration file location
++cluster-config-file {{ cluster_config_file }}
++
++# Enable append-only persistence (AOF)
++appendonly {{ appendonly }}
++appendfilename "{{ appendfilename }}"
++appendfsync {{ appendfsync }}
++
++# RDB persistence configuration
++save {{ save_intervals }}
++dir {{ redis_data_dir }}
++dbfilename {{ dbfilename }}
++
++# Log file location
++logfile {{ redis_log_dir }}/redis.log
++
++# Maximum memory Redis is allowed to use (memory limit)
++maxmemory {{ maxmemory }}
++
++# Maximum eviction policy when memory limit is reached
++maxmemory-policy {{ maxmemory_policy }}
++
++# PID file location
++pidfile {{ redis_pid_dir }}/redis.pid
++
++# Password protection
++requirepass {{ redis_password }}
++
++# Daemonize Redis to run in the background
++daemonize {{ daemonize }}
++
++# Set the maximum number of connections
++maxclients {{ maxclients }}
++
++# Set the timeout for idle connections (in seconds)
++timeout {{ timeout }}
++
++# Set the number of databases (default: 16)
++databases {{ databases }}
++
++# TCP keepalive to prevent broken connections from accumulating
++tcp-keepalive {{ tcp_keepalive }}
++
++# Disable protected mode (caution, ensure proper network restrictions)
++protected-mode {{ protected_mode }}

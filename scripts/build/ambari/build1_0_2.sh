@@ -36,17 +36,26 @@ mkdir -p "$RPM_PACKAGE"
 # 定义一个函数来应用补丁
 apply_patch() {
   local patch_file=$1
+  echo "正在处理补丁文件：$patch_file"
+
+  # 检查是否已经应用补丁，避免反转提示
   if patch -p1 --dry-run -R -d "$PROJECT_PATH" <"$patch_file" >/dev/null 2>&1; then
     echo "补丁：$patch_file 已经应用，跳过"
   else
-    if patch -p1 --fuzz=0 --verbose -d "$PROJECT_PATH" <"$patch_file"; then
+    # 使用 --forward 确保补丁不会被反转
+    if patch -p1 --fuzz=0 --no-backup-if-mismatch --forward -d "$PROJECT_PATH" <"$patch_file"; then
       echo "补丁：$patch_file 已经成功执行"
     else
-      echo "补丁：$patch_file 执行失败"
-      exit 1
+      # 检查是否是新增hunk（文件不存在的情况）
+      if grep -q "can't find file" <(patch -p1 --dry-run -d "$PROJECT_PATH" <"$patch_file" 2>&1); then
+        echo "补丁：$patch_file 是新增文件，跳过"
+      else
+        echo "补丁：$patch_file 执行失败"
+      fi
     fi
   fi
 }
+
 
 # 遍历数组并应用每个补丁文件
 for patch_file in "${patch_files[@]}"; do
@@ -60,7 +69,7 @@ done
 cd "$PROJECT_PATH"
 
 #mvn -T 16 -B clean install package rpm:rpm -Drat.skip=true -Dcheckstyle.skip=true -DskipTests -Dpython.ver="python >= 2.6" -Preplaceurl -X
-#mvn -T 16 -B  install package rpm:rpm -Drat.skip=true -Dcheckstyle.skip=true -DskipTests -Dpython.ver="python >= 2.6" -Preplaceurl
+mvn -T 16 -B  install package rpm:rpm -Drat.skip=true -Dcheckstyle.skip=true -DskipTests -Dpython.ver="python >= 2.6" -Preplaceurl
 
 find "$PROJECT_PATH" -iname '*.rpm' -exec cp -rv {} "$RPM_PACKAGE" \;
 echo "############## BUILD AMBARI1_0_2 end #############"

@@ -52,7 +52,7 @@ index fcb97d2..bf66147 100755
  for attempt in 1 2 3; do
    if [ ! -e "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" ]; then
 -    if ! curl -s -S --retry 3 -L -o "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" "https://raw.githubusercontent.com/gradle/gradle/v6.8.1/gradle/wrapper/gradle-wrapper.jar"; then
-+    if ! curl -s -S --retry 3 -L -o "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" "https://mirror.ghproxy.com/https://raw.githubusercontent.com/gradle/gradle/v6.8.1/gradle/wrapper/gradle-wrapper.jar"; then
++    if ! curl -s -S --retry 3 -L -o "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" "https://ghp.ci/https://raw.githubusercontent.com/gradle/gradle/v6.8.1/gradle/wrapper/gradle-wrapper.jar"; then
        rm -f "$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
        # Pause for a bit before looping in case the server throttled us.
        sleep 5
@@ -78,7 +78,7 @@ index 2dfca19..6619b12 100644
          // of curl (built against OpenSSL library that doesn't support TLSv1.2) would fail to
          // fetch the jar.
 -        def wrapperBaseUrl = "https://raw.githubusercontent.com/gradle/gradle/v$fullVersion/gradle/wrapper"
-+        def wrapperBaseUrl = "https://mirror.ghproxy.com/https://raw.githubusercontent.com/gradle/gradle/v$fullVersion/gradle/wrapper"
++        def wrapperBaseUrl = "https://ghp.ci/https://raw.githubusercontent.com/gradle/gradle/v$fullVersion/gradle/wrapper"
          def wrapperJarUrl = wrapperBaseUrl + "/gradle-wrapper.jar"
 
          def bootstrapString = """

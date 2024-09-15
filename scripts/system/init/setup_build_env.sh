@@ -20,7 +20,7 @@ set -ex
 
 echo "############## SETUP BUILD_ENV start #############"
 
-CMAKE_URL="https://mirror.ghproxy.com/https://github.com/Kitware/CMake/releases/download/v3.30.0/cmake-3.30.0-linux-x86_64.sh"
+CMAKE_URL="https://ghp.ci/https://github.com/Kitware/CMake/releases/download/v3.30.0/cmake-3.30.0-linux-x86_64.sh"
 CMAKE="/opt/modules/cmake3.sh"
 CMAKE_HOME_PATH="/opt/modules/cmake3"
 mkdir -p "/opt/modules/cmake3"

@@ -8,7 +8,7 @@ index d0f0b6fe31..797b71fcb7 100644
 +	"registry": "https://registry.bower.io/",
 +	"strict-ssl": false,
 +	"analytics": false,
-+	"shorthand-resolver": "https://mirror.ghproxy.com/https://github.com/{{owner}}/{{package}}.git",
++	"shorthand-resolver": "https://ghp.ci/https://github.com/{{owner}}/{{package}}.git",
 +	"directory": "app/bower_components"
  }
 \ No newline at end of file

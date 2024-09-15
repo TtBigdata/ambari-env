@@ -594,7 +594,7 @@ index 899ebcd7..f96715d0 100644
 +                source = "v${version.base}.tar.gz"
 +            }
 +            url {
-+                site = "https://mirror.ghproxy.com/https://github.com/Alluxio/alluxio/archive"
++                site = "https://ghp.ci/https://github.com/Alluxio/alluxio/archive"
 +                archive = site
 +            }
 +        }
@@ -643,7 +643,7 @@ index 899ebcd7..f96715d0 100644
 +                source = "${version.base}.tar.gz"
 +            }
 +            url {
-+                site = "https://mirror.ghproxy.com/https://github.com/brianfrankcooper/YCSB/archive"
++                site = "https://ghp.ci/https://github.com/brianfrankcooper/YCSB/archive"
 +                archive = site
 +            }
 +        }
@@ -691,7 +691,7 @@ index 899ebcd7..f96715d0 100644
 +                source = "${version.base}.tar.gz"
 +            }
 +            url {
-+                site = "https://mirror.ghproxy.com/https://github.com/greenplum-db/gpdb/archive/"
++                site = "https://ghp.ci/https://github.com/greenplum-db/gpdb/archive/"
 +                archive = site
 +            }
 +        }

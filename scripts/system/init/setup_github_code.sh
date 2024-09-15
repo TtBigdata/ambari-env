@@ -20,10 +20,10 @@ set -ex
 echo "############## SETUP GITHUB_CODE_DOWNLOAD start #############"
 # 目标目录和分支版本
 declare -A REPOS=(
-  ["/opt/modules/ambari"]="branch-2.8 https://mirror.ghproxy.com/https://github.com/apache/ambari.git"
-  ["/opt/modules/ambari-metrics"]="branch-3.0 https://mirror.ghproxy.com/https://github.com/apache/ambari-metrics.git"
-  ["/opt/modules/bigtop"]="release-3.2.0 https://mirror.ghproxy.com/https://github.com/apache/bigtop.git"
-  ["/opt/modules/ambari-infra"]="master https://mirror.ghproxy.com/https://github.com/apache/ambari-infra.git"
+  ["/opt/modules/ambari"]="branch-2.8 https://ghp.ci/https://github.com/apache/ambari.git"
+  ["/opt/modules/ambari-metrics"]="branch-3.0 https://ghp.ci/https://github.com/apache/ambari-metrics.git"
+  ["/opt/modules/bigtop"]="release-3.2.0 https://ghp.ci/https://github.com/apache/bigtop.git"
+  ["/opt/modules/ambari-infra"]="master https://ghp.ci/https://github.com/apache/ambari-infra.git"
 )
 
 # 创建目标目录的父目录

@@ -187,7 +187,7 @@ diff --git a/bigtop.bom b/bigtop.bom
 +                source = destination
 +            }
 +            url {
-+                site = "https://mirror.ghproxy.com/https://github.com/redis/redis/archive/refs/tags/"
++                site = "https://ghp.ci/https://github.com/redis/redis/archive/refs/tags/"
 +                archive = site
 +            }
 +        }

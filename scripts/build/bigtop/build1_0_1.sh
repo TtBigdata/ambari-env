@@ -133,16 +133,16 @@ done
 source /opt/rh/devtoolset-7/enable
 
 cd "$PROJECT_PATH"
-#gradle \
-#  bigtop-groovy-rpm \
-#  bigtop-jsvc-rpm \
-#  bigtop-select-rpm \
-#  bigtop-utils-rpm \
-#  sqoop-rpm \
-#  ranger-rpm \
-#  -PparentDir=/usr/bigtop \
-#  -Dbuildwithdeps=true \
-#  -PpkgSuffix
+gradle \
+  bigtop-groovy-rpm \
+  bigtop-jsvc-rpm \
+  bigtop-select-rpm \
+  bigtop-utils-rpm \
+  sqoop-rpm \
+  ranger-rpm \
+  -PparentDir=/usr/bigtop \
+  -Dbuildwithdeps=true \
+  -PpkgSuffix
 
 # 定义要处理的目录
 directories=("ranger" "sqoop" "bigtop-select")

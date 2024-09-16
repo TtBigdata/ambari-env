@@ -37,6 +37,7 @@ Bigtop，简化大数据平台的搭建过程。🌐
 |----------------------|-----------------------------------------------------------|----------|
 | **相关文档**             | -                                                         |          |
 | ambari+bigtop自定义组件集成 | https://blog.csdn.net/TTBIGDATA/article/details/142150086 | CSDN地址   |
+| 编译、开发、部署、集成解决方案      | https://t.zsxq.com/0PVcI                                  | 知识星球     |
 | **源代码**              | -                                                         |          |
 | Ambari-env           | https://github.com/TtBigdata/ambari-env                   | Gihub    |
 | Ambari-env           | https://gitee.com/tt-bigdata/ambari-env                   | Gitee    |

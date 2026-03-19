@@ -229,3 +229,8 @@
 本项目采用 [Apache 2.0](LICENSE) 许可证。
 
 ---
+
+
+
+这个脚本是 x86 里的 scripts/system/init/kylin10/setup_r_env.sh ，你要帮我在 arm 上执行一个配套的，也确保成功，涉及到下载 包的，你可以下载到我本机，然后scp 过去，服务器慢。                       
+你试验成功以后，需要把最终完整的脚本 记录下来，写到 no_docker_scripts/arm64 就叫，final.sh 吧 

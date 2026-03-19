@@ -224,6 +224,26 @@ services:
     networks:
       ambari-env-network:
         ipv4_address: 172.20.0.10
+  kylin10-arm:
+    image: hxsoong/kylin:v10-sp3
+    container_name: kylinv10-arm
+    hostname: kylin10-arm
+    platform: linux/arm64
+    tty: true
+    privileged: true
+    volumes:
+      - ./scripts:/scripts
+      - ./common/etc/yum.repos.d/kylin-v10:/etc/yum.repos.d
+      - ./common/conf:/opt/modules/conf
+      - ./common/data/mvn:/root/.m2
+      - ./common/data/rpm-package-kylin-arm:/data/rpm-package
+    entrypoint: /scripts/master_kylin10_arm.sh
+    depends_on:
+      nexus:
+        condition: service_healthy
+    networks:
+      ambari-env-network:
+        ipv4_address: 172.20.0.11
 
 #
 #  mysql:

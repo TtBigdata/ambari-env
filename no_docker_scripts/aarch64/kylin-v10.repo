@@ -1,0 +1,27 @@
+[kylin-base]
+name=Kylin V10 SP3 - Base (aarch64)
+baseurl=https://update.cs2c.com.cn/NS/V10/V10SP3-2403/os/adv/lic/base/aarch64/
+enabled=1
+gpgcheck=0
+metadata_expire=6h
+
+[kylin-updates]
+name=Kylin V10 SP3 - Updates (aarch64)
+baseurl=https://update.cs2c.com.cn/NS/V10/V10SP3-2403/os/adv/lic/updates/aarch64/
+enabled=1
+gpgcheck=0
+metadata_expire=6h
+
+[ks10-adv-addons]
+name = Kylin Linux Advanced Server 10 - Addons
+baseurl=https://update.cs2c.com.cn/NS/V10/V10SP3-2403/os/adv/lic/updates/aarch64/
+gpgcheck = 0
+enabled = 0
+
+[epol]
+name=openEuler EPOL main (aarch64)
+baseurl=https://mirrors.huaweicloud.com/openeuler/openEuler-20.03-LTS-SP3/EPOL/main/aarch64/
+enabled=1
+gpgcheck=0
+countme=1
+metadata_expire=6h

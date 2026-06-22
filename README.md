@@ -1,4 +1,4 @@
-# Ambari+Bigtop 一站式编译和部署解决方案 🚀✨
+# Ambari Plus 3.0.1 一站式编译、部署与运维环境
 
 <p align="center">
   <a href="https://gitee.com/tt-bigdata/ambari-env">
@@ -8,229 +8,196 @@
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="Apache 2.0 License">
   </a>
   <br>
-  <img src="https://img.shields.io/badge/Ambari-2.8.0-orange" alt="Ambari 2.8.0">
-  <img src="https://img.shields.io/badge/Ambari-3.0.0-yellow" alt="Ambari 3.0.0">
+  <img src="https://img.shields.io/badge/Ambari%20Plus-3.0.1-red" alt="Ambari Plus 3.0.1">
+  <img src="https://img.shields.io/badge/Ambari-3.0.0-orange" alt="Ambari 3.0.0">
   <img src="https://img.shields.io/badge/Bigtop-3.2.0-green" alt="Bigtop 3.2.0">
 </p>
 
-
 ---
 
-## 最新公告
+## Ambari Plus 3.0.1
 
-# Ambari Plus 2.2.3 更新说明｜i18n 与企业级安全链路增强
+**Ambari Plus 3.0.1** 基于 Ambari 3.0.0 和 Bigtop 3.2.0，面向自建大数据集群的构建、安装、扩展与运维。
 
-大家好，我是小饕。
+它保留 Ambari 的服务安装与配置管理能力，同时补齐统一控制台、服务详情、主机监控、告警闭环、权限审计、Knox 网关、插件市场和离线升级等生产环境常用能力。
 
-当前最新版本为 **2.2.3**。 本次发布提供两种安装包，基础功能一致，仅分发形式不同。
-同时，我们的定制版本正式更名为：
+![Ambari Plus 3.0.1 集群工作台](.docs/ambari-plus-301-overview.png)
 
-**Ambari Plus**
+> 页面截图已对主机名、IP、账号、租户和集群标识等环境信息做脱敏处理。
 
-这个版本的定位依然很明确 ——
-在 Ambari 基础上做增强，专注企业安全场景与实际部署问题的修正。
+## 适合哪些场景
 
-下面是本次版本的主要内容。
+- 在 el7、el8、Ubuntu 22.04、Kylin V10 等环境中构建 Ambari 和 Bigtop 组件包。
+- 在 Ambari 基础上补充统一控制台、服务详情、主机诊断和监控告警能力。
+- 打通 Kerberos、Ranger、Knox、LDAP、Hue 等安全访问链路。
+- 在离线或内网环境中交付、升级和维护大数据组件。
 
-## 一、i18n 国际化支持
+## 3.0.1 带来的能力
 
-![image-20260302210154232](https://img.janettr.com/49c877326649cad6e7e146cd9d101a17-4656e0.png)
+| 方向 | 说明 |
+| --- | --- |
+| 控制台 | 通过 Ambari Plus Web 管理集群、主机、服务、任务、告警、权限、插件、设置和版本更新。 |
+| 服务详情 | HDFS、YARN、Kafka、Hive、HBase、Knox 等服务按各自运维视角展示关键指标。 |
+| Monitor v2 | 通过 `monitor-agent`、`monitor-ingester`、`monitor-platform-api`、`monitor-rule-engine` 形成监控采集、入库、API 和规则计算链路。 |
+| 告警中心 | 支持阈值策略、告警事件、通知渠道、站内信、通知历史和 Ambari 原生告警接入。 |
+| 权限审计 | 提供权限包、资源绑定、预检、部署、运行态验证、闭环验收和审计中心。 |
+| 安全链路 | 增强 LDAP、Kerberos、Ranger、Knox、Hue 等组合场景，降低安全模式下的配置成本。 |
+| 插件体系 | 支持插件市场、插件宿主、插件上传、启停、反代、License 和 LLM Gateway 示例插件。 |
+| 离线升级 | 支持升级包上传、manifest 解析、preflight、执行计划、进度跟踪和回滚准备。 |
 
-本次完成前端 i18n 结构改造。
+## 从总览到服务
 
-![image-20260302204551182](https://img.janettr.com/8e6476534c5908ab654546f715bae5f3-c2889e.png)
+集群工作台先给出服务、主机、严重告警、配置变更、安全类型和告警源等核心状态。进入服务目录后，可以按存储、计算、查询、治理、安全、接入等场景查看组件实例、角色、运行状态和客户端分布。
 
-页面支持中英文切换：
+![Ambari Plus 服务与组件目录](.docs/ambari-plus-301-services.png)
 
-![image-20260302204933548](https://img.janettr.com/2b26a6d307ed3c81b724f6a31e488081-ab8275.png)
+## 服务详情与主机诊断
 
-本次改造包含：
+服务详情页按组件类型呈现不同的运维视角。以 HDFS 为例，页面会突出 DataNode、NameNode、容量、RPC、文件与块、HA、异常和治理趋势等关键指标。
 
-- 文案抽离
-- 组件变量适配
-- 结构统一整理
+![HDFS 组件监控](.docs/ambari-plus-301-hdfs-monitor.png)
 
-后续扩展其他语言会更方便。
+主机页把组件、告警、主机监控、存储、操作记录和配置放在同一个视图里。CPU、内存、磁盘、网络、进程、链路等指标可以按时间窗口查看，适合快速判断问题是在服务层、主机层还是配置层。
 
-## 二、深色主题
+![主机监控与运行指标](.docs/ambari-plus-301-host-monitor.png)
 
-新增两套深色主题。
+## Knox 网关
 
-### 黑金
+Knox 是安全访问链路的核心入口之一。它负责把 Ranger、Hue、Atlas、YARN UI、Spark History、Trino UI 等 Web 能力收敛到统一网关路径下，并与 Kerberos、Ranger Plugin、Knox SSO 等配置联动。
 
-![image-20260302205109937](https://img.janettr.com/cc184c0d105c779d7773253bc0207c63-a7d423.png)
+![Knox 服务运维入口](.docs/ambari-plus-301-knox-service.png)
 
-![image-20260302205733329](https://img.janettr.com/21d297f9684f181b30e9cbbb42a1385c-53d2d2.png)
+Knox Home UI 会把已接入的组件入口集中展示出来，减少直接暴露组件原始地址，也方便后续做统一认证、审计和访问控制。
 
-![image-20260302205633793](https://img.janettr.com/eb5a3c37c1fcea98322df17d0da92ea8-fb4e64.png)
+![Knox Home UI](.docs/ambari-plus-301-knox-home.png)
 
-![image-20260302205538885](https://img.janettr.com/5944b69c8bdeabd3b836a17fea10f1b4-62bb0f.png)
+## 监控与告警中心
 
-### 翡翠绿
+告警中心将告警事件、阈值策略、通知配置、站内信和通知历史放到同一个入口里。告警不只是页面提示，还可以追踪来源、级别、状态、影响对象和通知链路。
 
-![image-20260302205143679](https://img.janettr.com/bc04eee5111aa77307507699f4c83fa3-936669.png)
+![监控与告警中心](.docs/ambari-plus-301-alert-center.png)
 
-![image-20260302205334905](https://img.janettr.com/b784b1fb0ee7f9e7754d8021373ce000-dfa6b3.png)
+## 离线版本更新
 
-![image-20260302205356334](https://img.janettr.com/26e7c19bd863f1371caaf54b0d2a7bb9-97f85c.png)
+生产环境常常不能直接联网升级。离线版本更新入口支持上传升级包，并按解析、预检、确认、执行和回滚准备的流程推进。
 
-![image-20260302205446315](https://img.janettr.com/6d9638564ba512676323e92f1419e7aa-ed18df.png)
+![离线版本更新](.docs/ambari-plus-301-upgrade.png)
 
-# 本次完整更新清单
+## 仓库内容
 
-## 新增（Features）
+`ambari-env` 为 Ambari Plus 提供构建、打包和部署所需的基础环境，主要包含：
 
-- `[feat]` 新增主题配色方案：**翡翠（Emerald）** 与 **黑金（Black & Gold）** 两套视觉主题，提升整体界面质感与可定制性
-- `[feat]` 全面支持 **i18n 国际化机制**，可按需扩展多语言环境，满足不同地区与客户部署需求
+- Docker 化构建环境和本地 Nexus 缓存。
+- Ambari、Bigtop、Ambari Metrics、Ambari Infra 构建脚本。
+- CentOS/Rocky/Ubuntu/Kylin 多发行版适配。
+- Kylin V10 x86/ARM64 构建与裸机部署脚本。
+- Ambari Plus 3.0.1 发行包构建、验证和交付基础。
 
-## 优化（Optimizations）
+更多安装、卸载、组件说明和版本更新记录可参考：
 
-- `[optimized]` 优化 **Hadoop DataNode 滚动重启** 异常处理逻辑，修复仅逐个重启导致效率低的问题，提升批量滚动重启稳定性与执行效率
-- `[optimized]` 增强 **FreeIPA 用户同步相关参数处理机制**，提升同步稳定性与可控性，适配复杂目录与权限场景
-- `[optimized]` 新增 **Ranger Security 日志级别控制权限**，支持按需调整安全日志输出粒度，便于审计与问题排查
-- `[optimized]` Ambari 全面增强对 **FreeIPA + Ranger 集成场景** 的授权与认证支持，优化统一身份与权限管理链路，提升企业级安全治理能力
-- `[optimized]` Kafka 默认开启 Ranger Plugin 时，自动补全策略必要参数
-- `[optimized]` 支持 Ranger 高可用自动生成 keytab 和 principal，也支持后期补全
-- `[optimized]` 支持 Ranger 2.4.0 基于 Haproxy 下的高可用部署
-- `[optimized]` HDFS 默认管理员组缺省值调整为 `hadoop`，解决 WebHDFS Logs 场景下使用 `admin` 用户仍无法访问的问题
-- `[optimized]` Hue 配置中增加默认启动用户与用户组，统一以 `hadoop` 组启动，避免因用户/组不一致导致的启动失败
-- `[optimized]` 默认创建 `admin` 用户与 `hadoop` 组，并建立绑定关系，降低初始化与权限配置复杂度
-- `[optimized]` ZooKeeper 3.5.9 启用扩展模式（Extended Mode），支持动态配置能力，提升 Ranger Admin 通讯与管理灵活性
-- `[optimized]` ZooKeeper 默认连接数相关参数内置，避免高并发访问场景下的隐式性能瓶颈
-- `[optimized]` 优化 Ranger Lookup 在快速输入场景下触发大量 timeout task 的问题，降低后台线程池压力
-- `[optimized]` Ranger Knox Plugin 调试完成，支持对 Knox Topology 下服务的策略拦截
-- `[optimized]` Ranger Admin 支持以客户端模式运行，并携带证书访问受保护服务
-- `[optimized]` Hue 增加主题样式渲染能力，提升 Web UI 展示效果与一致性
-- `[optimized]` Hue 优化组件日志级别控制，支持按需开启 Debug 级别日志
-- `[optimized]` 增强 Hue 配置解析逻辑，避免 SparkSQL 与 Beeswax 模块共用 Hive Principal 引发认证冲突
-- `[optimized]` Knox 启用 Kerberos 模式，并补充完整认证脚本，简化安全模式下的部署与验证流程
+- 官方文档站：[https://doc.janettr.com](https://doc.janettr.com)
+- Gitee 镜像站：[https://gitee.com/tt-bigdata/ambari-env](https://gitee.com/tt-bigdata/ambari-env)
 
-## 修复（Fix）
+## 版本说明
 
-- `[fix]` 修复 Kerberos 因 DNS 反解/主机名规范化导致的 principal 不匹配问题（禁用 rdns/canonicalize）
-- `[fix]` 修复前端安装组件过多时，滚动条不生效问题
-- `[fix]` 修复未开启 kerberos 状态下，Ranger admin 启动校验 zk 失败问题
-- `[fix]` 对 Ambari Metrics 监控组件高可用配置进行修改，目前已恢复正常
-- `[fix]` 修复 HBase 组件未安装场景下，无法在 Ranger 中创建对应策略的问题
-- `[fix]` 修复启用 Ranger Knox Plugin 后，与 Knox 包安装流程存在的冲突问题
-- `[fix]` 修复 `hive.tez.java.opts` 因换行符配置不当导致 Tez 引擎执行失败的问题
-- `[fix]` 修复 Knox 审计日志无法上传至 HDFS 的问题
-- `[fix]` 修复 `ranger-hdfs-plugin` 生成的 `cred.jceks` 为空文件的问题
-- `[fix]` 修复 `ranger-yarn-plugin` 生成的 `cred.jceks` 为空文件的问题
-- `[fix]` 修复 `ranger-hbase-plugin` 生成的 `cred.jceks` 为空文件的问题
-- `[fix]` 修复 `ranger-knox-plugin` 生成的 `cred.jceks` 为空文件的问题
-- `[fix]` 修复 `ranger-hive-plugin` 生成的 `cred.jceks` 为空文件的问题
-- `[fix]` 修复 Ranger 默认 Cookie Name 配置错误导致的认证异常问题
-- `[fix]` 修复 Hue 缺失用户家目录导致的启动异常问题
-- `[fix]` 修复 Atlas 在启用 Ranger 与 Kerberos 后，Kafka 权限配置不完整的问题
-- `[fix]` 修复 Atlas Kafka 策略中缺失 `ATLAS_HOOK` Topic 必要权限的问题
-- `[fix]` 修复 Atlas Kafka 策略中缺失 `consumer group = atlas` 授权的问题
-- `[fix]` 修复 Atlas 在安全模式下因缺失 `__AtlasUserProfile` 实体导致的访问异常问题
+| 版本 | 核心定位 | Ambari | Bigtop | 主要环境 |
+| --- | --- | --- | --- | --- |
+| 3.0.1 | 控制台、监控、权限、Knox、插件、离线升级完整增强版 | 3.0.0 | 3.2.0 | el7 / el8 / Rocky 8 / Ubuntu 22.04 / Kylin V10 x86 / Kylin V10 ARM64 |
+| 2.2.3 | i18n、主题、安全链路与企业部署增强 | 3.0.0 | 3.2.0 | el7 / el8 / Ubuntu 22.04 / Kylin V10 |
+| 2.2.x | Ambari 3.0.0 与多系统适配增强 | 3.0.0 | 3.2.0 | el7 / el8 / Ubuntu 22.04 / Kylin V10 |
+| 2.0.x | Ambari 3.0.0 基础构建版本 | 3.0.0 | 3.2.0 | el7 / el8 |
+| 1.0.x | Bigtop 组件持续扩展版本 | 2.8 / 3.0 过渡 | 3.2.0 | 以 el7 为主 |
 
-## 📚 项目简介
+## 权益与组件版本
 
-> 建议优先访问（更新更快 + 源头首发）  
-> 🧭 **[官方文档站](https://doc.janettr.com)**  
-> 🚀 [Gitee 镜像站（同步更新）](https://gitee.com/tt-bigdata/ambari-env)
+不同使用计划包含的组件范围不同。下表列出当前可用版本和组件版本，便于在下载或部署前确认所需能力。
 
-本项目基于以下版本进行魔改与增强，提供一站式编译、部署、管理解决方案：
+### 当前发行版本
 
-- **Ambari 2.8.0 & Ambari 3.0.0**
-- **Bigtop 3.2.0**
+| 类型 | 版本 | 主要系统与架构 |
+| --- | --- | --- |
+| Ambari Plus | v3.0.1 / Ambari 3.0.0 | el7 / el8 / ubuntu22 / kylin v10 x86_64 / aarch64 |
+| Ambari Plus Monitor | v3.0.1 | el8 / ubuntu22 / kylin v10 x86_64 / aarch64 |
+| Bigtop 组件包 | BIGTOP 3.2.0 / env 3.0.1 | el7 / el8 / ubuntu22 / kylin v10 x86_64 / aarch64 |
 
-提供 **开箱即用** 的大数据组件部署方案，简化运维，支持多种主流组件，致力于打造稳定、可靠、高效的大数据生态环境。
+### FREE 计划
 
+FREE 计划包含基础大数据组件，适合学习、验证和小范围评估；入会尊享同样包含这些组件。
 
----
+| 组件 | 版本 |
+| --- | --- |
+| Ambari | 3.0.0 |
+| Hadoop | 3.3.4 |
+| HBase | 2.4.13 |
+| Hive | 3.1.3 |
+| Phoenix | 5.1.2 |
+| ZooKeeper | 3.5.9 |
+| Tez | 0.10.1 |
+| Solr | 8.11.2 |
 
-## 🚀 版本说明
+### 入会尊享扩展
 
-|   **版本**   |     **组件名称**     |    **组件版本**    | **env 版本** |             **环境适配**             |
-|:----------:|:----------------:|:--------------:|:----------:|:--------------------------------:|
-| **v2.2.2** |      Ambari      |     3.0.0      |   2.2.2    | el7 & el8 & ubuntu22 & Kylin V10 |
-|            |     Alluxio      |     2.9.4      |   2.2.2    | el7 & el8 & ubuntu22 & Kylin V10 |
-|            |       Knox       |     2.1.0      |   2.2.2    | el7 & el8 & ubuntu22 & Kylin V10 |
-|            |       Hue        |     4.11.0     |   2.2.2    | el7 & el8 & ubuntu22 & Kylin V10 |
-|            |      下面所有组件      |  1.0.0-1.0.7   |   2.2.2    | el7 & el8 & ubuntu22 & Kylin V10 |
-| **v2.2.1** |      Ambari      |     3.0.0      |   2.2.1    | el7 & el8 & ubuntu22 & Kylin V10 |
-|            |      下面所有组件      |  1.0.0-1.0.7   |   2.2.1    | el7 & el8 & ubuntu22 & Kylin V10 |
-| **v2.2.0** |      Ambari      |     3.0.0      |   2.2.0    | el7 & el8 & ubuntu22 & Kylin V10 |
-|            |      下面所有组件      |  1.0.0-1.0.7   |   2.2.0    | el7 & el8 & ubuntu22 & Kylin V10 |
-| **v2.1.0** |      Ambari      |     3.0.0      |   2.1.0    |       el7 & el8 & ubuntu22       |
-|            |      下面所有组件      |  1.0.0-1.0.7   |   2.1.0    |       el7 & el8 & ubuntu22       |
-| **v2.0.0** |      Ambari      |     3.0.0      |   2.0.0    |            el7 & el8             |
-|            |      下面所有组件      |  1.0.0-1.0.7   |   2.0.0    |            el7 & el8             |
-| **v1.0.7** |     Superset     |     4.1.2      |   1.0.7    |              仅 el7               |
-|            |      Atlas       |     2.4.0      |   1.0.7    |              仅 el7               |
-|            |      Spark       |  3.5.5（版本升级）   |   1.0.7    |              仅 el7               |
-|            |      Flink       |  1.17.2（版本升级）  |   1.0.7    |              仅 el7               |
-| **v1.0.6** |      Trino       |      474       |   1.0.6    |              仅 el7               |
-|            |       Hudi       |     1.1.0      |   1.0.6    |              仅 el7               |
-|            |      Paimon      |     1.0.1      |   1.0.6    |              仅 el7               |
-| **v1.0.5** |      Ozone       |     1.4.1      |   1.0.5    |              仅 el7               |
-|            |      Impala      |     4.4.1      |   1.0.5    |              仅 el7               |
-|            |   Nightingale    |     7.7.2      |   1.0.5    |              仅 el7               |
-|            |     Categraf     |     0.4.1      |   1.0.5    |              仅 el7               |
-|            | VictoriaMetrics  |    1.109.1     |   1.0.5    |              仅 el7               |
-|            |   Cloudbeaver    |     24.3.3     |   1.0.5    |              仅 el7               |
-|            |     Celeborn     |     0.5.3      |   1.0.5    |              仅 el7               |
-| **v1.0.4** |      Doris       |     2.1.7      |   1.0.4    |              仅 el7               |
-| **v1.0.3** |     Phoenix      |     5.1.2      |   1.0.3    |              仅 el7               |
-|            | Dolphinscheduler |     3.2.2      |   1.0.3    |              仅 el7               |
-| **v1.0.2** |      Redis       |     7.4.0      |   1.0.2    |              仅 el7               |
-| **v1.0.1** |      Sqoop       |     1.4.7      |   1.0.1    |              仅 el7               |
-|            |      Ranger      |     2.4.0      |   1.0.1    |              仅 el7               |
-| **v1.0.0** |    Zookeeper     |     3.5.9      |   1.0.0    |              仅 el7               |
-|            |      Hadoop      |     3.3.4      |   1.0.0    |              仅 el7               |
-|            |    ~~Flink~~     |   ~~1.15.3~~   |   1.0.0    |              仅 el7               |
-|            |      HBase       |     2.4.13     |   1.0.0    |              仅 el7               |
-|            |       Hive       |     3.1.3      |   1.0.0    |              仅 el7               |
-|            |      Kafka       |     2.8.1      |   1.0.0    |              仅 el7               |
-|            |    ~~Spark~~     |   ~~3.2.3~~    |   1.0.0    |              仅 el7               |
-|            |       Solr       |     8.11.2     |   1.0.0    |              仅 el7               |
-|            |       Tez        |     0.10.1     |   1.0.0    |              仅 el7               |
-|            |     Zeppelin     |     0.10.1     |   1.0.0    |              仅 el7               |
-|            |       Livy       |     0.7.1      |   1.0.0    |              仅 el7               |
-|            |    ~~Ambari~~    | ~~branch-2.8~~ |   1.0.0    |              仅 el7               |
-|            |  Ambari Metrics  |   branch-3.0   |   1.0.0    |              仅 el7               |
-|            |   Ambari Infra   |     master     |   1.0.0    |              仅 el7               |
+入会尊享扩展包含生产环境更常用的监控、安全治理、计算、湖仓和工具组件。
 
----
+| 组件 | 版本 |
+| --- | --- |
+| Ambari Plus Monitor | 3.0.1 |
+| Superset | 4.1.2 |
+| Alluxio | 2.9.4 |
+| Hue | 4.11.0 |
+| Knox | 2.1.0-RC2 |
+| Atlas | 2.4.0 |
+| Spark | 3.5.5 |
+| Flink | 1.17.2 |
+| Trino | 474 |
+| Hudi | 1.1.0 |
+| Paimon | 1.0.1 |
+| Ozone | 1.4.1 |
+| Impala | 4.4.1 |
+| Celeborn | 0.5.3 |
+| Doris | 2.1.7 |
+| DolphinScheduler | 3.4.1 |
+| Sqoop | 1.4.7 |
+| Ranger | 2.4.0 |
+| Kafka | 2.8.1 |
+| Zeppelin | 0.10.1 |
+| Livy | 0.7.1 |
 
-## 🔧 快速上手
+## 目录结构
 
-[参考文档](https://doc.janettr.com)
+```text
+scripts/
+  build/
+    ambari/           # Ambari 2.x/早期构建脚本
+    ambari3/          # Ambari 3.x 构建与 patch
+    ambari-infra/     # Ambari Infra 构建
+    ambari-metrics/   # Ambari Metrics 构建
+    bigtop/           # Bigtop 1.x/早期组件构建
+    bigtop3/          # Bigtop 3.x 多系统组件构建
+  system/
+    init/             # 系统初始化脚本
+    before/           # 构建前置准备
+    after/            # 构建后处理
+  util/               # 工具脚本
+  master_*.sh         # 各发行版容器初始化入口
 
-教你如何安装，如何卸载，并提供了一键安装脚本
+no_docker_scripts/    # 裸机部署脚本
+plugin/               # 可选插件或周边服务
+common/               # Maven、Gradle、YUM repo 等公共配置
+```
 
-## 效果图
+## 支持本项目
 
-![img.png](.docs/img_66.png)
-![img.png](.docs/img_15.png)
+如果这个项目对你有帮助，可以通过这些方式支持：
 
----
+1. 给项目点一个 Star，让更多人看到它。
+2. 分享给正在折腾 Ambari、Bigtop、大数据集群部署的朋友。
+3. 请作者喝杯茶，二维码在下面。
 
-## ❤️ 支持本项目
+| 微信赞赏 | 微信号 | QQ 群 |
+| --- | --- | --- |
+| <img src=".docs/img_3.png" width="150" /> | <img src=".docs/img_23.png" alt="WeChat QR" width="150" /> | <img src=".docs/img_24.png" alt="QQ QR" width="150" /> |
 
-如果你觉得本项目对你有帮助，可以通过以下方式支持：
-
-1. ⭐ **Star** 本项目，帮助它被更多人看到 🚀
-2. 📢 **分享** 本项目，帮助更多开发者受益
-3. 🍵 **打赏**，请作者喝一杯茶 ☕（见下方二维码）
-
-|                    微信赞赏                    |                          微信号                           |                        QQ 群                        |                
-|:------------------------------------------:|:------------------------------------------------------:|:--------------------------------------------------:|
-| <img  src='.docs/img_3.png' width="150" /> | <img src='.docs/img_23.png' alt="WeChat QR" width=150> | <img src='.docs/img_24.png' alt="QQ QR" width=150> |
-
----
-
-## 📜 许可证
+## 许可证
 
 本项目采用 [Apache 2.0](LICENSE) 许可证。
-
----
-
-
-
-这个脚本是 x86 里的 scripts/system/init/kylin10/setup_r_env.sh ，你要帮我在 arm 上执行一个配套的，也确保成功，涉及到下载 包的，你可以下载到我本机，然后scp 过去，服务器慢。                       
-你试验成功以后，需要把最终完整的脚本 记录下来，写到 no_docker_scripts/arm64 就叫，final.sh 吧 

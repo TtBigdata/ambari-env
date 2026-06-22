@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  iotdb:
+    image: apache/iotdb:1.3.2-standalone
+    container_name: iotdb
+    hostname: iotdb
+    ports:
+      - "6667:6667"    # IoTDB RPC port
+      - "10740:10740"  # Sync port
+      - "31999:31999"  # MQTT port
+    volumes:
+      - ./data:/iotdb/data
+      - ./logs:/iotdb/logs
+      - ./conf:/iotdb/conf
+    environment:
+      - IOTDB_HEAP_SIZE=1G
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 6667 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      iotdb-network:
+        ipv4_address: 172.30.0.2
+
+networks:
+  iotdb-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
